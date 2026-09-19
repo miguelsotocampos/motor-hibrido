@@ -391,20 +391,15 @@ function iniciar(gltf) {
     return pt;
   });
 
-  // Ordenamos de izquierda a derecha en el eje longitudinal
-  partes.sort((a, b) => a.rel - b.rel);
-
+  // Localizar pieza de la tobera
   let piezaTobera = partes.find(p => p.clave.includes('nozzle')) || partes[partes.length - 1];
   const cajaTobera = new THREE.Box3().setFromObject(piezaTobera.obj);
   cajaTobera.getCenter(extremoTobera);
-  
   direccionSalida.copy(extremoTobera).sub(centroGeneral).normalize();
 
-  // Buscar el índice del Casing Principal para usarlo como ancla central
-  const idxCasing = partes.findIndex(p => p.clave.includes('casing') && !p.clave.includes('nozzle'));
-  const centroIndex = idxCasing !== -1 ? idxCasing : Math.floor(partes.length / 2);
-
-  const pasoSeparacion = L * 0.35; // Espaciado constante para que ninguna pieza se solape
+  // CLASIFICACIÓN Y EXPLOSIONADO MANUAL ESTRICTO POR COMPONENTE
+  // Se asigna un offset axial específico a cada pieza garantizando que el inyector vaya a la izquierda (-Z) y la tobera a la derecha (+Z)
+  let subIndexInj = 0, subIndexNoz = 0;
 
   partes.forEach((pt, i) => {
     const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
@@ -415,11 +410,35 @@ function iniciar(gltf) {
     });
     pt.hex = hex;
 
-    // Desplazamiento progresivo basado en la posición en la cadena de ensamble
-    const offsetIndice = i - centroIndex;
-    const factorAxial = offsetIndice * pasoSeparacion;
+    const c = pt.clave;
+    let offsetAxial = 0;
 
-    const mundo = dirEje.clone().multiplyScalar(factorAxial);
+    // INYECTORES Y COMPONENTES DE ENTRADA -> HACIA LA IZQUIERDA (-)
+    if (c.includes('injector') || c.includes('inyector')) {
+      subIndexInj++;
+      offsetAxial = -(L * (0.8 + subIndexInj * 0.25));
+    } else if (c.includes('pre-cc')) {
+      offsetAxial = -(L * 0.55);
+    } else if (c.includes('phenolics') || c.includes('liner')) {
+      offsetAxial = -(L * 0.3); // Asoma un poco por el lado izquierdo
+    } 
+    // ELEMENTOS INTERNOS Y CASING -> CENTRO
+    else if (c.includes('grainstep') || c.includes('grano')) {
+      offsetAxial = L * 0.25; // Asoma un poco por el lado derecho
+    } else if (c.includes('casing') && !c.includes('nozzle')) {
+      offsetAxial = 0; // Se mantiene fijo al centro
+    } 
+    // TOBERA Y COMPONENTES DE SALIDA -> HACIA LA DERECHA (+)
+    else if (c.includes('injerto') || c.includes('grafito')) {
+      offsetAxial = L * 0.55;
+    } else if (c.includes('nozzle') || c.includes('tobera')) {
+      subIndexNoz++;
+      offsetAxial = L * (0.85 + subIndexNoz * 0.25);
+    } else {
+      offsetAxial = pt.rel * L * 1.2;
+    }
+
+    const mundo = dirEje.clone().multiplyScalar(offsetAxial);
     const padre = pt.obj.parent;
     padre.updateWorldMatrix(true, false);
     const inv = new THREE.Matrix4().copy(padre.matrixWorld).invert();
