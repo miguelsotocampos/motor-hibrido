@@ -253,8 +253,8 @@ const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-/* PLANO DE CORTE LONGITUDINAL (Corta a lo largo de la pieza) */
-let planoCorte = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+/* PLANO DE CORTE LONGITUDINAL REBANANDO A LA MITAD EN EL EJE X */
+let planoCorte = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
 let corteActivo = false;
 
 const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
@@ -347,9 +347,8 @@ function iniciar(gltf) {
   const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
   const dirArriba = eje === 'y' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
 
-  // Orientación del corte según el eje principal
-  if (eje === 'z') planoCorte = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-  else planoCorte = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+  // Forzar el plano de corte para rebanar perpendicularmente a la vista 2D frontal
+  planoCorte = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
 
   partes = objs.map(obj => {
     const pt = { obj, meshes: [obj], mats: [] };
@@ -378,12 +377,11 @@ function iniciar(gltf) {
 
   partes.sort((a, b) => a.rel - b.rel);
 
-  // Determinar la tobera (extremo menor valor de rel o según nombre)
+  // Localizar extremo de la tobera para la emisión de partículas
   let piezaTobera = partes.find(p => p.clave.includes('nozzle')) || partes[0];
   const cajaTobera = new THREE.Box3().setFromObject(piezaTobera.obj);
   cajaTobera.getCenter(extremoTobera);
   
-  // Dirección de escape corregida (hacia afuera del motor por la tobera)
   direccionSalida.copy(extremoTobera).sub(centroGeneral).normalize();
 
   partes.forEach((pt, i) => {
@@ -433,7 +431,7 @@ function iniciar(gltf) {
   construirLista();
 }
 
-/* MODO RAYOS X */
+/* MODO RAYOS X (EFECTO SELECCIÓN) */
 function estadoVisual(pt, modo) {
   for (const m of pt.mats) {
     if ('emissive' in m) {
