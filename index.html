@@ -218,9 +218,15 @@ const PIEZAS = {
   },
   'injector': {
     ...AL,
-    titulo: 'Inyector de Óxido Nitroso',
-    queEs: 'Elemento distribuidor con orificios calibrados para inyectar el oxidante de forma uniforme a la cámara.',
+    titulo: 'Inyector',
+    queEs: 'Elemento distribuidor con orificios calibrados. Por este componente se inyecta el óxido nitroso en estado líquido a la cámara.',
     presion: '50 - 60 bar'
+  },
+  'guarda': {
+    ...AL,
+    titulo: 'Guarda de Tobera',
+    queEs: 'Estructura o casing exterior diseñada para sostener, alinear y proteger mecánicamente el ensamble de la tobera.',
+    presion: 'Estructural'
   }
 };
 
@@ -229,6 +235,7 @@ const clave = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').to
 
 function buscarInfo(nombreCad) {
   const c = clave(nombreCad);
+  if (c.includes('casing') && c.includes('nozzle')) return PIEZAS['guarda'];
   for (const key in PIEZAS) {
     if (c.includes(key)) return PIEZAS[key];
   }
@@ -246,8 +253,8 @@ const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-/* PLANO DE CORTE LIMPIO SOBRE EL EJE Z */
-const planoCorte = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
+/* PLANO DE CORTE LONGITUDINAL (Corta a lo largo de la pieza) */
+let planoCorte = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 let corteActivo = false;
 
 const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
@@ -274,9 +281,10 @@ let aplicarExplosion = () => {};
 let centroGeneral = new THREE.Vector3();
 let distMinCamara = 0.5, distMaxCamara = 10;
 let extremoTobera = new THREE.Vector3();
+let direccionSalida = new THREE.Vector3();
 
 /* SISTEMA DE PARTÍCULAS PARA FIRE TEST */
-const cantParticulas = 300;
+const cantParticulas = 350;
 const geoParticulas = new THREE.BufferGeometry();
 const posParticulas = new Float32Array(cantParticulas * 3);
 const velParticulas = [];
@@ -290,10 +298,10 @@ for (let i = 0; i < cantParticulas; i++) {
 geoParticulas.setAttribute('position', new THREE.BufferAttribute(posParticulas, 3));
 
 const matParticulas = new THREE.PointsMaterial({
-  color: 0xff5500,
-  size: 0.08,
+  color: 0xff4500,
+  size: 0.09,
   transparent: true,
-  opacity: 0.8,
+  opacity: 0.85,
   blending: THREE.AdditiveBlending
 });
 const fuegoMesh = new THREE.Points(geoParticulas, matParticulas);
@@ -316,7 +324,7 @@ function iniciar(gltf) {
   modelo.traverse(o => { if (o.isCamera || o.isLight || (o !== modelo && ignorar.includes(clave(o.name)))) quitar.push(o); });
   quitar.forEach(o => o.parent && o.parent.remove(o));
   
-  // CENTRADO EXACTO DE GEOMETRÍA EN EL ORIGEN (0,0,0)
+  // CENTRADO EXACTO DE GEOMETRÍA
   const caja = new THREE.Box3().setFromObject(modelo);
   const centro = caja.getCenter(new THREE.Vector3());
   modelo.position.sub(centro);
@@ -331,7 +339,6 @@ function iniciar(gltf) {
   modelo.traverse(o => { if (o.isMesh) objs.push(o); });
 
   const tam = caja.getSize(new THREE.Vector3());
-  planoCorte.constant = 0;
 
   const ejes = ['x', 'y', 'z'];
   const eje = CONFIG.ejeMotor === 'auto' ? ejes.reduce((a, b) => (tam[b] > tam[a] ? b : a)) : CONFIG.ejeMotor;
@@ -340,8 +347,9 @@ function iniciar(gltf) {
   const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
   const dirArriba = eje === 'y' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
 
-  // Extremo para la salida del fuego
-  extremoTobera.copy(centroGeneral).addScaledVector(dirEje, L * 0.5);
+  // Orientación del corte según el eje principal
+  if (eje === 'z') planoCorte = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  else planoCorte = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
 
   partes = objs.map(obj => {
     const pt = { obj, meshes: [obj], mats: [] };
@@ -369,6 +377,15 @@ function iniciar(gltf) {
   });
 
   partes.sort((a, b) => a.rel - b.rel);
+
+  // Determinar la tobera (extremo menor valor de rel o según nombre)
+  let piezaTobera = partes.find(p => p.clave.includes('nozzle')) || partes[0];
+  const cajaTobera = new THREE.Box3().setFromObject(piezaTobera.obj);
+  cajaTobera.getCenter(extremoTobera);
+  
+  // Dirección de escape corregida (hacia afuera del motor por la tobera)
+  direccionSalida.copy(extremoTobera).sub(centroGeneral).normalize();
+
   partes.forEach((pt, i) => {
     const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
     let hex = '#9AAAB6';
@@ -416,7 +433,7 @@ function iniciar(gltf) {
   construirLista();
 }
 
-/* EFECTO RAYOS X (TRANSPARENCIA AL SELECCIONAR) */
+/* MODO RAYOS X */
 function estadoVisual(pt, modo) {
   for (const m of pt.mats) {
     if ('emissive' in m) {
@@ -543,25 +560,25 @@ $('#btn-reset').addEventListener('click', () => {
   encuadrar();
 });
 
-/* ANIMACIÓN Y FUEGO */
+/* ANIMACIÓN Y FUEGO POR LA TOBERA */
 const reloj = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(reloj.getDelta(), 0.05);
   if (Math.abs(objetivoT - t) > 0.0005) { t += (objetivoT - t) * Math.min(1, dt * 7); aplicarExplosion(); }
 
-  // Animación del Fire Test
+  // Animación del Fire Test por la tobera
   if (fuegoActivo) {
     const pos = geoParticulas.attributes.position.array;
     for (let i = 0; i < cantParticulas; i++) {
-      if (velParticulas[i].lengthSq() === 0 || pos[i * 3 + 2] > 2.0) {
-        pos[i * 3] = extremoTobera.x + (Math.random() - 0.5) * 0.05;
-        pos[i * 3 + 1] = extremoTobera.y + (Math.random() - 0.5) * 0.05;
-        pos[i * 3 + 2] = extremoTobera.z;
-        velParticulas[i].set(
-          (Math.random() - 0.5) * 0.2,
-          (Math.random() - 0.5) * 0.2,
-          1.5 + Math.random() * 2.0
-        );
+      if (velParticulas[i].lengthSq() === 0 || pos[i * 3] * direccionSalida.x + pos[i * 3 + 1] * direccionSalida.y + pos[i * 3 + 2] * direccionSalida.z > 2.5) {
+        pos[i * 3] = extremoTobera.x + (Math.random() - 0.5) * 0.04;
+        pos[i * 3 + 1] = extremoTobera.y + (Math.random() - 0.5) * 0.04;
+        pos[i * 3 + 2] = extremoTobera.z + (Math.random() - 0.5) * 0.04;
+        
+        velParticulas[i].copy(direccionSalida).multiplyScalar(1.8 + Math.random() * 2.2);
+        velParticulas[i].x += (Math.random() - 0.5) * 0.25;
+        velParticulas[i].y += (Math.random() - 0.5) * 0.25;
+        velParticulas[i].z += (Math.random() - 0.5) * 0.25;
       } else {
         pos[i * 3] += velParticulas[i].x * dt;
         pos[i * 3 + 1] += velParticulas[i].y * dt;
