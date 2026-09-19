@@ -53,7 +53,7 @@
 
   /* Lista de piezas */
   #lista {
-    position: fixed; left: 16px; top: 100px; bottom: 132px; width: 210px;
+    position: fixed; left: 16px; top: 100px; bottom: 200px; width: 210px;
     display: flex; flex-direction: column; gap: 6px; overflow-y: auto;
     padding: 2px; -webkit-overflow-scrolling: touch;
   }
@@ -67,7 +67,7 @@
   #lista button[aria-pressed="true"] { border-color: var(--brasa); box-shadow: inset 4px 0 0 var(--brasa); font-weight: 600; }
 
   /* Acciones arriba a la derecha */
-  #acciones { position: fixed; top: 20px; right: 20px; display: flex; gap: 8px; }
+  #acciones { position: fixed; top: 20px; right: 20px; display: flex; gap: 8px; z-index: 10; }
   #acciones button {
     min-height: 44px; padding: 0 16px; background: var(--tarjeta);
     border: 1px solid var(--borde); border-radius: 6px; font-size: 16px; font-weight: 500;
@@ -76,7 +76,7 @@
 
   /* Ficha de la pieza */
   #panel {
-    position: fixed; right: 20px; top: 76px; bottom: 132px; width: min(360px, 92vw);
+    position: fixed; right: 20px; top: 76px; bottom: 200px; width: min(360px, 92vw);
     background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
     padding: 22px 22px 20px; overflow-y: auto;
     transform: translateX(calc(100% + 40px));
@@ -99,21 +99,25 @@
   #p-datos dd { margin: 2px 0 0; font-size: 20px; font-weight: 600; }
   #p-datos dd.vacio { color: #9AAAB6; font-weight: 400; font-style: italic; }
 
-  /* Control de explosión */
-  #control {
-    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
-    width: min(600px, calc(100vw - 40px)); padding: 12px 20px 14px;
-    background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
-    box-shadow: 0 6px 20px rgba(18,40,58,.1);
+  /* Controles inferiores (Explosión y Zoom) */
+  #controles-contenedor {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    width: min(600px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 8px;
   }
-  #control label { display: block; font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 600; font-size: 22px; margin-bottom: 4px; }
-  #control .fila { display: flex; align-items: center; gap: 14px; font-size: 15px; color: var(--tinta-suave); }
-  #control .fila span { flex: none; }
-  #explosion { flex: 1; -webkit-appearance: none; appearance: none; height: 44px; background: transparent; margin: 0; }
-  #explosion::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--plano), var(--brasa)); }
-  #explosion::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--plano), var(--brasa)); }
-  #explosion::-webkit-slider-thumb { -webkit-appearance: none; width: 34px; height: 34px; margin-top: -14px; border-radius: 50%; background: #fff; border: 3px solid var(--tinta); }
-  #explosion::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 3px solid var(--tinta); }
+  .bloque-control {
+    padding: 8px 18px 10px; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(18,40,58,.1);
+  }
+  .bloque-control label { display: block; font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 600; font-size: 18px; margin-bottom: 2px; }
+  .bloque-control .fila { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--tinta-suave); }
+  .bloque-control .fila span { flex: none; }
+  .bloque-control input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 38px; background: transparent; margin: 0; }
+  
+  /* Pistas de los Sliders */
+  #explosion::-webkit-slider-runnable-track, #zoom::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--plano), var(--brasa)); }
+  #explosion::-moz-range-track, #zoom::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--plano), var(--brasa)); }
+  #explosion::-webkit-slider-thumb, #zoom::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%; background: #fff; border: 3px solid var(--tinta); }
+  #explosion::-moz-range-thumb, #zoom::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 3px solid var(--tinta); }
 
   #estado {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -124,9 +128,9 @@
 
   @media (max-width: 760px) {
     #titulo { font-size: 30px; }
-    #lista { top: auto; bottom: 132px; left: 12px; right: 12px; width: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+    #lista { top: auto; bottom: 180px; left: 12px; right: 12px; width: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
     #lista button { flex: none; }
-    #panel { top: auto; right: 12px; left: 12px; bottom: 196px; width: auto; max-height: 40vh; transform: translateY(calc(100% + 240px)); }
+    #panel { top: auto; right: 12px; left: 12px; bottom: 230px; width: auto; max-height: 38vh; transform: translateY(calc(100% + 240px)); }
     #acciones { top: 14px; right: 12px; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -145,6 +149,7 @@
 <nav id="lista" aria-label="Piezas del motor"></nav>
 
 <div id="acciones">
+  <button id="btn-corte" type="button" aria-pressed="false">Corte Transversal</button>
   <button id="btn-girar" type="button" aria-pressed="true">Girar solo</button>
   <button id="btn-reset" type="button">Reiniciar</button>
 </div>
@@ -156,12 +161,23 @@
   <dl id="p-datos"></dl>
 </aside>
 
-<div id="control">
-  <label for="explosion">Explosionar</label>
-  <div class="fila">
-    <span>Armado</span>
-    <input id="explosion" type="range" min="0" max="100" value="0" aria-label="Separar las piezas del motor">
-    <span>Explosionado</span>
+<div id="controles-contenedor">
+  <div class="bloque-control">
+    <label for="explosion">Explosionar</label>
+    <div class="fila">
+      <span>Armado</span>
+      <input id="explosion" type="range" min="0" max="100" value="0" aria-label="Separar las piezas del motor">
+      <span>Explosionado</span>
+    </div>
+  </div>
+
+  <div class="bloque-control">
+    <label for="zoom">Zoom (Acercar/Alejar)</label>
+    <div class="fila">
+      <span>Cerca</span>
+      <input id="zoom" type="range" min="0" max="100" value="50" aria-label="Ajustar nivel de zoom de la cámara">
+      <span>Lejos</span>
+    </div>
   </div>
 </div>
 
@@ -186,15 +202,15 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
    1. CONFIGURACIÓN
    ========================================================================== */
 const CONFIG = {
-  modelo: 'motor.glb',            // Nombre del archivo GLB en GitHub
+  modelo: 'motor.glb',            
   titulo: 'Motor híbrido',
-  ensamble: 'Ensamble macho',     // Nombre del objeto padre que agrupa las piezas
-  ignorar: ['Cube'],              // Objetos que no forman parte del motor
-  ejeMotor: 'auto',               // 'auto', 'x', 'y' o 'z'
-  expansion: 3.2,                 // Distancia de explosión aumentada
-  colorear: true,                 // true = colorea piezas para diferenciarlas fácilmente
-  rotacionAutomatica: true,       // Rotación automática cuando está inactivo
-  aMilimetros: 1000               // Conversión a mm
+  ensamble: 'Ensamble macho',     
+  ignorar: ['Cube'],              
+  ejeMotor: 'z',                  
+  expansion: 2.2,                 
+  colorear: true,                 
+  rotacionAutomatica: true,       
+  aMilimetros: 1000               
 };
 
 const AL = { material: 'Aluminio 6061', tempMax: 'Pierde resistencia desde ~150 °C y se debilita mucho por encima de 200 °C' };
@@ -204,76 +220,53 @@ const PIEZAS = {
   'Injector': {
     ...AL, titulo: 'Inyector',
     queEs: 'Es la regadera del motor: reparte el oxidante, lo que permite que el combustible se queme, para que entre de forma pareja.',
-    presion: '',
-    medidas: 'Cabeza de Ø76.2 mm, 55 mm de largo total',
-    extra: { 'Orificios de inyección': '10 orificios de Ø1.24 mm', 'Entrada del oxidante': 'Rosca G 1/4 (BSPP)' },
     explosion: { axial: -1.8, lift: 0 }
   },
   'Injector case': {
     ...AL, titulo: 'Carcasa del inyector',
     queEs: 'Aloja el inyector y lo mantiene alineado y sellado.',
-    presion: '',
-    medidas: 'Brida de Ø120 mm, cuerpo de Ø65 mm, 45 mm de largo total',
     explosion: { axial: -1.2, lift: 0.3 }
   },
   'Brida Injector': {
     ...AL, titulo: 'Brida del inyector',
     queEs: 'Anillo atornillado que une y sella el extremo del inyector con el resto del motor.',
-    presion: '',
-    medidas: 'Ø120 mm, 20 mm de grosor',
     explosion: { axial: -0.7, lift: 0 }
   },
   'Casing': {
     ...AL, titulo: 'Carcasa (casing)',
-    queEs: 'Es el tubo exterior del motor: resiste la presión de adentro y le da resistencia estructural. Lleva una brida soldada en cada extremo para unir el resto de las piezas.',
-    presion: '', medidas: '',
-    extra: { 'Bridas': '2 bridas soldadas de Ø116 mm y 20 mm de grosor' },
-    explosion: { axial: 0, lift: 1.5 } // Se eleva fuera del eje central
+    queEs: 'Es el tubo exterior del motor: resiste la presión de adentro y le da resistencia estructural.',
+    explosion: { axial: 0, lift: 1.5 }
   },
   'Fenolico': {
     ...FEN, titulo: 'Aislante fenólico',
-    queEs: 'Capa que protege la carcasa del calor de la combustión. Se va carbonizando poco a poco para cuidar lo que hay detrás.',
-    presion: '', medidas: '',
-    explosion: { axial: 0, lift: -1.2 } // Desciende hacia el lado opuesto
+    queEs: 'Capa que protege la carcasa del calor de la combustión.',
+    explosion: { axial: 0.1, lift: -1.4 }
   },
   'Pre-CC': {
     ...FEN, titulo: 'Precámara de combustión',
-    queEs: 'Espacio antes del combustible donde el oxidante se mezcla y se estabiliza antes de empezar a quemarse.',
-    presion: '',
-    medidas: 'Ø exterior 65 mm, Ø interior 51 mm, 23 mm de largo',
+    queEs: 'Espacio antes del combustible donde el oxidante se mezcla y se estabiliza.',
     explosion: { axial: 0.4, lift: 0 }
   },
   'Grano': {
     titulo: 'Grano (combustible)',
-    queEs: 'Es el combustible sólido del motor. Al pasar el oxidante por su canal central se quema y genera los gases calientes que dan el empuje.',
+    queEs: 'Es el combustible sólido del motor. Al pasar el oxidante por su canal central se quema y genera empuje.',
     material: 'HDPE (polietileno de alta densidad)',
-    tempMax: 'Se funde a ~130 °C y se descompone a ~400 °C; se consume al quemarse',
-    presion: '', medidas: '',
-    explosion: { axial: 0.8, lift: 0.6 } // Flota hacia arriba fuera de la estructura
+    explosion: { axial: 0.8, lift: 0.8 }
   },
   'Injerto': {
     titulo: 'Injerto de grafito',
-    queEs: 'Pieza de grafito que forma la garganta, el punto más angosto de la tobera. Ahí los gases van muy rápido y muy calientes, por eso se usa un material que aguanta temperaturas extremas.',
+    queEs: 'Pieza de grafito que forma la garganta, el punto más angosto de la tobera.',
     material: 'Grafito',
-    tempMax: 'Más de 2 200 °C',
-    presion: '',
-    medidas: 'Ø exterior 45 mm, 40.67 mm de largo',
-    extra: { 'Diámetro de la garganta': '≈ 33.9 mm' },
     explosion: { axial: 1.3, lift: 0 }
   },
   'Tobera': {
     ...FEN, titulo: 'Tobera',
-    queEs: 'Es la salida en forma de campana: acelera los gases calientes y los convierte en empuje.',
-    presion: '',
-    medidas: 'Largo 138.33 mm, Ø máximo 75 mm',
-    extra: { 'Diámetro de salida': '52.05 mm' },
+    queEs: 'Salida en forma de campana: acelera los gases calientes y los convierte en empuje.',
     explosion: { axial: 1.8, lift: 0 }
   },
   'Brida Tobera': {
     ...AL, titulo: 'Brida de la tobera',
-    queEs: 'Anillo atornillado que une y sella la tobera en el extremo de salida del motor.',
-    presion: '',
-    medidas: 'Brida de Ø120 mm, cuerpo de Ø85 mm, 65 mm de largo total',
+    queEs: 'Anillo atornillado que une y sella la tobera.',
     explosion: { axial: 2.3, lift: 0 }
   }
 };
@@ -298,24 +291,29 @@ $('#titulo').textContent = CONFIG.titulo;
 document.title = CONFIG.titulo;
 
 /* ==========================================================================
-   3. ESCENA Y CONTROLES LIBRES
+   3. ESCENA Y PLANO DE CORTE TRANSVERSAL
    ========================================================================== */
 const stage = $('#stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.localClippingEnabled = true; // Activar capacidad de corte por pieza
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
+/* Plano de Corte Transversal (Corta la mitad exacta en el eje X) */
+const planoCorte = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);
+let corteActivo = false;
+
 const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.enablePan = true;          // Permite desplazar la cámara con 2 dedos en iPad
+controls.enablePan = true;          
 controls.screenSpacePanning = true; 
-controls.maxPolarAngle = Math.PI;   // Ángulo vertical completo (arriba/abajo)
+controls.maxPolarAngle = Math.PI;   
 controls.minPolarAngle = 0;
 controls.autoRotateSpeed = 0.9;
 
@@ -339,6 +337,7 @@ let encuadrar = () => {};
 let aplicarExplosion = () => {};
 let lineaCentro = null;
 let centroGeneral = new THREE.Vector3();
+let distMinCamara = 0.5, distMaxCamara = 10;
 
 new GLTFLoader().load(
   CONFIG.modelo,
@@ -349,7 +348,7 @@ new GLTFLoader().load(
   xhr => { if (xhr.total) mensaje('Cargando modelo… ' + Math.round(100 * xhr.loaded / xhr.total) + ' %'); },
   err => {
     console.error(err);
-    mensaje('No se pudo cargar ' + CONFIG.modelo + '. Revisa que el archivo se llame "motor.glb" y esté en la raíz de tu proyecto.', true);
+    mensaje('No se pudo cargar ' + CONFIG.modelo + '. Revisa que el archivo esté subido en GitHub.', true);
   }
 );
 
@@ -363,19 +362,25 @@ function iniciar(gltf) {
   scene.add(modelo);
   modelo.updateMatrixWorld(true);
 
-  const buscar = k => { let r = null; modelo.traverse(o => { if (!r && o !== modelo && clave(o.name) === k) r = o; }); return r; };
-  const tieneMalla = o => { let v = false; o.traverse(c => { if (c.isMesh) v = true; }); return v; };
-  const hijosValidos = r => r.children.filter(c => tieneMalla(c));
-  let raiz = buscar(clave(CONFIG.ensamble)) || modelo;
-  let objs = hijosValidos(raiz);
-  while (objs.length === 1 && !objs[0].isMesh && objs[0].children.length) { raiz = objs[0]; objs = hijosValidos(raiz); }
-  if (!objs.length) { objs = []; modelo.traverse(o => { if (o.isMesh) objs.push(o); }); }
-  if (!objs.length) throw new Error('el GLB no contiene piezas con geometría.');
+  let objs = [];
+  modelo.traverse(o => {
+    if (o.isMesh) {
+      let p = o;
+      while (p.parent && p.parent !== modelo && p.parent.children.length === 1) { p = p.parent; }
+      if (!objs.includes(p)) objs.push(p);
+    }
+  });
 
-  const caja = new THREE.Box3().setFromObject(raiz);
+  if (!objs.length) throw new Error('El modelo 3D no contiene piezas válidas.');
+
+  const caja = new THREE.Box3().setFromObject(modelo);
   const tam = caja.getSize(new THREE.Vector3());
   const centro = caja.getCenter(new THREE.Vector3());
   centroGeneral.copy(centro);
+  
+  // Posicionar el plano de corte justo en el centro del motor
+  planoCorte.constant = centro.x;
+
   const ejes = ['x', 'y', 'z'];
   const eje = CONFIG.ejeMotor === 'auto' ? ejes.reduce((a, b) => (tam[b] > tam[a] ? b : a)) : CONFIG.ejeMotor;
   const otros = ejes.filter(e => e !== eje);
@@ -386,13 +391,21 @@ function iniciar(gltf) {
   partes = objs.map(obj => {
     const pt = { obj, meshes: [], mats: [] };
     pt.clave = clave(obj.name);
-    pt.info = INFO.get(claveInfo(obj.name)) || null;
+    
+    let infoHallada = null;
+    INFO.forEach((val, key) => {
+      if (pt.clave.includes(key) || key.includes(pt.clave)) infoHallada = val;
+    });
+    pt.info = infoHallada;
     pt.titulo = (pt.info && pt.info.titulo) || obj.name.replace(/_/g, ' ');
 
     obj.traverse(m => {
       if (!m.isMesh) return;
       m.material = Array.isArray(m.material) ? m.material.map(x => x.clone()) : m.material.clone();
-      (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => { x.side = THREE.DoubleSide; pt.mats.push(x); });
+      (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => { 
+        x.side = THREE.DoubleSide; 
+        pt.mats.push(x); 
+      });
       m.userData.parte = pt;
       pt.meshes.push(m);
     });
@@ -419,8 +432,13 @@ function iniciar(gltf) {
     pt.hex = hex;
 
     const ex = (pt.info && pt.info.explosion) || {};
-    const axial = typeof ex.axial === 'number' ? ex.axial : pt.rel * CONFIG.expansion;
-    const lift = typeof ex.lift === 'number' ? ex.lift : 0;
+    let axial = typeof ex.axial === 'number' ? ex.axial : pt.rel * CONFIG.expansion;
+    let lift = typeof ex.lift === 'number' ? ex.lift : 0;
+
+    if (axial === 0 && lift === 0) {
+      axial = (i - (partes.length - 1) / 2) * 0.4;
+    }
+
     const mundo = dirEje.clone().multiplyScalar(axial * L).addScaledVector(dirArriba, lift * L);
     const padre = pt.obj.parent;
     padre.updateWorldMatrix(true, false);
@@ -430,7 +448,7 @@ function iniciar(gltf) {
     pt.desplazamiento = mundo.applyMatrix4(inv).sub(origen);
   });
 
-  const mitad = L * (1 + CONFIG.expansion) * 0.6;
+  const mitad = L * (1 + CONFIG.expansion) * 0.5;
   const geo = new THREE.BufferGeometry().setFromPoints([
     centro.clone().addScaledVector(dirEje, -mitad),
     centro.clone().addScaledVector(dirEje, mitad)
@@ -451,20 +469,21 @@ function iniciar(gltf) {
   scene.add(luz, luz.target);
 
   const vista = (eje === 'z' ? new THREE.Vector3(1, 0.3, 0.25) : new THREE.Vector3(0.25, 0.3, 1)).normalize();
+  
+  distMinCamara = L * 0.3;
+  distMaxCamara = L * 3.5;
+
   encuadrar = () => {
-    const fov = THREE.MathUtils.degToRad(camera.fov);
-    const fovH = 2 * Math.atan(Math.tan(fov / 2) * camera.aspect);
-    const ancho = L * (1 + CONFIG.expansion * 0.6);
-    const diamMax = Math.max(tam[otros[0]], tam[otros[1]]);
-    const alto = diamMax + L * 0.4;
-    const dist = 1.25 * Math.max((ancho / 2) / Math.tan(fovH / 2), (alto / 2) / Math.tan(fov / 2)) + diamMax / 2;
-    camera.position.copy(centro).addScaledVector(vista, dist);
+    const distInicial = L * 1.5;
+    camera.position.copy(centro).addScaledVector(vista, distInicial);
     controls.target.copy(centro);
-    camera.near = dist / 100; camera.far = dist * 20;
+    camera.near = distMinCamara / 100; 
+    camera.far = distMaxCamara * 10;
     camera.updateProjectionMatrix();
-    controls.minDistance = dist * 0.25;
-    controls.maxDistance = dist * 2.2;
+    controls.minDistance = distMinCamara;
+    controls.maxDistance = distMaxCamara;
     controls.update();
+    $('#zoom').value = 50;
   };
   encuadrar();
   controls.autoRotate = girarAuto;
@@ -473,7 +492,7 @@ function iniciar(gltf) {
 }
 
 /* ==========================================================================
-   5. SELECCIÓN E INSPECCIÓN INDIVIDUAL
+   5. SELECCIÓN E INSPECCIÓN
    ========================================================================== */
 function estadoVisual(pt, modo) {
   for (const m of pt.mats) {
@@ -495,13 +514,12 @@ function seleccionar(pt) {
   if (pt) {
     $('#pista').classList.add('oculta');
     controls.autoRotate = false;
-    // La cámara centra su punto de rotación exactamente en la pieza seleccionada
     const cajaPieza = new THREE.Box3().setFromObject(pt.obj);
     const centroPieza = cajaPieza.getCenter(new THREE.Vector3());
     controls.target.copy(centroPieza);
   } else {
     if (girarAuto) controls.autoRotate = true;
-    controls.target.copy(centroGeneral); // Regresa al centro completo del motor
+    controls.target.copy(centroGeneral);
   }
   mostrarFicha(pt);
 }
@@ -565,9 +583,37 @@ renderer.domElement.addEventListener('pointerup', e => {
 $('#cerrar').addEventListener('click', () => seleccionar(null));
 
 /* ==========================================================================
-   6. CONTROLES INTERFACE
+   6. CONTROLES DE INTERFAZ (CORTE, EXPLOSIÓN Y ZOOM)
    ========================================================================== */
+/* Botón para alternar el Corte Transversal */
+$('#btn-corte').addEventListener('click', e => {
+  corteActivo = !corteActivo;
+  e.currentTarget.setAttribute('aria-pressed', String(corteActivo));
+  
+  // Activar o desactivar el plano de corte en todas las piezas
+  partes.forEach(pt => {
+    pt.mats.forEach(m => {
+      m.clippingPlanes = corteActivo ? [planoCorte] : [];
+      m.clipShadows = true;
+      m.needsUpdate = true;
+    });
+  });
+});
+
 $('#explosion').addEventListener('input', e => { objetivoT = e.target.value / 100; });
+
+$('#zoom').addEventListener('input', e => {
+  const val = e.target.value / 100;
+  const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+  const dist = distMinCamara + val * (distMaxCamara - distMinCamara);
+  camera.position.copy(controls.target).addScaledVector(dir, dist);
+});
+
+controls.addEventListener('change', () => {
+  const dist = camera.position.distanceTo(controls.target);
+  const val = Math.min(1, Math.max(0, (dist - distMinCamara) / (distMaxCamara - distMinCamara)));
+  $('#zoom').value = val * 100;
+});
 
 $('#btn-girar').setAttribute('aria-pressed', String(girarAuto));
 $('#btn-girar').addEventListener('click', e => {
@@ -578,7 +624,16 @@ $('#btn-girar').addEventListener('click', e => {
 
 $('#btn-reset').addEventListener('click', () => {
   seleccionar(null);
-  objetivoT = 0; $('#explosion').value = 0;
+  objetivoT = 0; 
+  $('#explosion').value = 0;
+  
+  /* Resetear corte transversal */
+  corteActivo = false;
+  $('#btn-corte').setAttribute('aria-pressed', 'false');
+  partes.forEach(pt => {
+    pt.mats.forEach(m => { m.clippingPlanes = []; m.needsUpdate = true; });
+  });
+
   encuadrar();
 });
 
