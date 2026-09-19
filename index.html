@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Motor híbrido interactivo</title>
+<title>Motor híbrido interactivo - Race 2 Space</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
@@ -19,6 +19,7 @@
     --brasa: #E8590C;
     --tarjeta: #F8FBFC;
     --borde: rgba(18, 40, 58, .22);
+    --fuego: #FF4500;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -43,7 +44,7 @@
   }
   #stage canvas { display: block; touch-action: none; }
 
-  #cabecera { position: fixed; top: 20px; left: 24px; pointer-events: none; }
+  #cabecera { position: fixed; top: 20px; left: 24px; pointer-events: none; z-index: 5; }
   #titulo {
     margin: 0; font-family: 'Barlow Condensed', system-ui, sans-serif;
     font-weight: 700; font-size: 38px; line-height: 1; letter-spacing: .01em;
@@ -53,7 +54,7 @@
 
   /* Lista de piezas reducida un 45% (Ancho 115px) y ocultable */
   #lista {
-    position: fixed; left: 16px; top: 100px; bottom: 200px; width: 115px;
+    position: fixed; left: 16px; top: 100px; bottom: 210px; width: 115px;
     display: flex; flex-direction: column; gap: 4px; overflow-y: auto;
     padding: 2px; -webkit-overflow-scrolling: touch;
     transition: opacity 0.25s ease, transform 0.25s ease;
@@ -75,38 +76,38 @@
   #lista button[aria-pressed="true"] { border-color: var(--brasa); box-shadow: inset 3px 0 0 var(--brasa); font-weight: 600; }
 
   /* Acciones arriba a la derecha */
-  #acciones { position: fixed; top: 20px; right: 20px; display: flex; gap: 8px; z-index: 10; }
+  #acciones { position: fixed; top: 20px; right: 20px; display: flex; gap: 8px; z-index: 10; flex-wrap: wrap; justify-content: flex-end; max-width: 600px; }
   #acciones button {
-    min-height: 44px; padding: 0 14px; background: var(--tarjeta);
-    border: 1px solid var(--borde); border-radius: 6px; font-size: 15px; font-weight: 500;
+    min-height: 40px; padding: 0 12px; background: var(--tarjeta);
+    border: 1px solid var(--borde); border-radius: 6px; font-size: 14px; font-weight: 500;
   }
   #acciones button[aria-pressed="true"] { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+  #btn-fire[aria-pressed="true"] { background: var(--brasa) !important; color: #fff !important; border-color: var(--fuego) !important; box-shadow: 0 0 12px rgba(232,89,12,0.6); }
+
+  /* Panel de Telemetría (Fire Test) */
+  #telemetria {
+    position: fixed; left: 24px; top: 100px; width: 220px;
+    background: rgba(18, 40, 58, 0.92); color: #fff; border: 1px solid var(--brasa);
+    border-radius: 8px; padding: 14px; font-family: 'Barlow Condensed', monospace;
+    display: none; box-shadow: 0 8px 25px rgba(0,0,0,0.3); z-index: 15;
+    backdrop-filter: blur(4px);
+  }
+  #telemetria.activo { display: block; }
+  #telemetria h3 { margin: 0 0 10px 0; font-size: 18px; color: var(--brasa); text-transform: uppercase; border-bottom: 1px solid rgba(232,89,12,0.3); padding-bottom: 4px; }
+  .metric-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 15px; }
+  .metric-val { font-weight: 700; color: #00e5ff; }
 
   /* Ficha de la pieza ARRASTRABLE */
   #panel {
     position: fixed; right: 20px; top: 76px; width: min(340px, 85vw); max-height: 60vh;
     background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
     padding: 22px 22px 20px; overflow-y: auto;
-    display: none;
-    box-shadow: 0 10px 30px rgba(18,40,58,.2);
-    z-index: 20;
-    touch-action: none;
+    display: none; box-shadow: 0 10px 30px rgba(18,40,58,.2); z-index: 20; touch-action: none;
   }
   #panel.abierto { display: block; }
-  #panel-header {
-    cursor: move;
-    padding-bottom: 8px;
-    margin-bottom: 8px;
-    border-bottom: 2px stroke var(--borde);
-  }
-  #panel h2 {
-    margin: 0 36px 0 0; font-family: 'Barlow Condensed', system-ui, sans-serif;
-    font-weight: 700; font-size: 30px; line-height: 1.05; color: var(--brasa);
-  }
-  #cerrar {
-    position: absolute; top: 12px; right: 12px; width: 36px; height: 36px;
-    border: 1px solid var(--borde); border-radius: 6px; background: transparent; font-size: 20px; line-height: 1;
-  }
+  #panel-header { cursor: move; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 2px stroke var(--borde); }
+  #panel h2 { margin: 0 36px 0 0; font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; font-size: 30px; line-height: 1.05; color: var(--brasa); }
+  #cerrar { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: 1px solid var(--borde); border-radius: 6px; background: transparent; font-size: 20px; line-height: 1; }
   #p-desc { margin: 10px 0 16px; font-size: 16px; line-height: 1.4; }
   #p-datos { margin: 0; }
   #p-datos .fila { padding: 8px 0; border-top: 1px solid var(--borde); }
@@ -114,39 +115,41 @@
   #p-datos dd { margin: 2px 0 0; font-size: 17px; font-weight: 600; }
   #p-datos dd.vacio { color: #9AAAB6; font-weight: 400; font-style: italic; }
 
-  /* Controles inferiores */
+  /* Controles inferiores (Explosión, Zoom, Transparencia, Potencia) */
   #controles-contenedor {
     position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
-    width: min(600px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 8px;
-    z-index: 10;
+    width: min(600px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 6px; z-index: 10;
   }
   .bloque-control {
-    padding: 8px 18px 10px; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
+    padding: 6px 16px 8px; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
     box-shadow: 0 4px 15px rgba(18,40,58,.1);
   }
-  .bloque-control label { display: block; font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 600; font-size: 18px; margin-bottom: 2px; }
-  .bloque-control .fila { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--tinta-suave); }
+  .bloque-control label { display: block; font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 1px; }
+  .bloque-control .fila { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--tinta-suave); }
   .bloque-control .fila span { flex: none; }
-  .bloque-control input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 38px; background: transparent; margin: 0; }
+  .bloque-control input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 32px; background: transparent; margin: 0; }
   
-  #explosion::-webkit-slider-runnable-track, #zoom::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--plano), var(--brasa)); }
-  #explosion::-moz-range-track, #zoom::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--plano), var(--brasa)); }
-  #explosion::-webkit-slider-thumb, #zoom::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%; background: #fff; border: 3px solid var(--tinta); }
-  #explosion::-moz-range-thumb, #zoom::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 3px solid var(--tinta); }
+  #explosion::-webkit-slider-runnable-track, #zoom::-webkit-slider-runnable-track, #xray::-webkit-slider-runnable-track, #throttle::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--plano), var(--brasa)); }
+  #explosion::-moz-range-track, #zoom::-moz-range-track, #xray::-moz-range-track, #throttle::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--plano), var(--brasa)); }
+  #explosion::-webkit-slider-thumb, #zoom::-webkit-slider-thumb, #xray::-webkit-slider-thumb, #throttle::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; background: #fff; border: 3px solid var(--tinta); }
+  #explosion::-moz-range-thumb, #zoom::-moz-range-thumb, #xray::-moz-range-thumb, #throttle::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 3px solid var(--tinta); }
+
+  #bloque-throttle { display: none; border-color: var(--brasa); }
+  #bloque-throttle.activo { display: block; }
 
   #estado {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-    padding: 32px; text-align: center; font-size: 22px; background: rgba(231,238,242,.92);
+    padding: 32px; text-align: center; font-size: 22px; background: rgba(231,238,242,.92); z-index: 100;
   }
   #estado.oculto { display: none; }
   #estado.error { color: #9B1C1C; }
 
   @media (max-width: 760px) {
-    #titulo { font-size: 30px; }
-    #lista { top: auto; bottom: 180px; left: 12px; right: 12px; width: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+    #titulo { font-size: 28px; }
+    #lista { top: auto; bottom: 220px; left: 12px; right: 12px; width: auto; flex-direction: row; overflow-x: auto; }
     #lista button { flex: none; }
-    #panel { top: auto; right: 12px; left: 12px; bottom: 230px; width: auto; max-height: 38vh; }
-    #acciones { top: 14px; right: 12px; }
+    #panel { top: auto; right: 12px; left: 12px; bottom: 240px; width: auto; max-height: 38vh; }
+    #acciones { top: 10px; right: 12px; }
   }
 </style>
 </head>
@@ -160,9 +163,19 @@
 
 <nav id="lista" aria-label="Piezas del motor"></nav>
 
+<div id="telemetria">
+  <h3>🔥 BANCO DE PRUEBAS</h3>
+  <div class="metric-row"><span>EMPUJE:</span><span id="m-thrust" class="metric-val">0.00 kN</span></div>
+  <div class="metric-row"><span>PRESIÓN CC:</span><span id="m-press" class="metric-val">0.0 bar</span></div>
+  <div class="metric-row"><span>FLUJO N2O:</span><span id="m-flow" class="metric-val">0.00 kg/s</span></div>
+  <div class="metric-row"><span>TIEMPO:</span><span id="m-time" class="metric-val">00:00.0s</span></div>
+</div>
+
 <div id="acciones">
-  <button id="btn-toggle-lista" type="button" aria-pressed="true">👁️ Piezas</button>
+  <button id="btn-fire" type="button" aria-pressed="false">🔥 Fire Test</button>
+  <button id="btn-flow" type="button" aria-pressed="false">💧 Flujo Oxidante</button>
   <button id="btn-corte" type="button" aria-pressed="false">Corte Transversal</button>
+  <button id="btn-toggle-lista" type="button" aria-pressed="true">👁️ Piezas</button>
   <button id="btn-girar" type="button" aria-pressed="true">Girar solo</button>
   <button id="btn-reset" type="button">Reiniciar</button>
 </div>
@@ -177,6 +190,24 @@
 </aside>
 
 <div id="controles-contenedor">
+  <div id="bloque-throttle" class="bloque-control">
+    <label for="throttle">Potencia de Ignición (Throttle)</label>
+    <div class="fila">
+      <span>0%</span>
+      <input id="throttle" type="range" min="0" max="100" value="85" aria-label="Regular potencia de ignición">
+      <span>100%</span>
+    </div>
+  </div>
+
+  <div class="bloque-control">
+    <label for="xray">Transparencia X-Ray</label>
+    <div class="fila">
+      <span>Sólido</span>
+      <input id="xray" type="range" min="0" max="100" value="0" aria-label="Transparencia de piezas">
+      <span>Cristal</span>
+    </div>
+  </div>
+
   <div class="bloque-control">
     <label for="explosion">Explosionar</label>
     <div class="fila">
@@ -190,7 +221,7 @@
     <label for="zoom">Zoom (Acercar/Alejar)</label>
     <div class="fila">
       <span>Cerca</span>
-      <input id="zoom" type="range" min="0" max="100" value="50" aria-label="Ajustar nivel de zoom de la cámara">
+      <input id="zoom" type="range" min="0" max="100" value="50" aria-label="Ajustar nivel de zoom">
       <span>Lejos</span>
     </div>
   </div>
@@ -235,69 +266,56 @@ const PIEZAS = {
   'Injector': {
     ...AL, titulo: 'Inyector',
     queEs: 'Es la regadera del motor: reparte el oxidante, lo que permite que el combustible se queme, para que entre de forma pareja.',
-    presion: '',
-    medidas: 'Cabeza de Ø76.2 mm, 55 mm de largo total',
+    presion: '', medidas: 'Cabeza de Ø76.2 mm, 55 mm de largo total',
     extra: { 'Orificios de inyección': '10 orificios de Ø1.24 mm', 'Entrada del oxidante': 'Rosca G 1/4 (BSPP)' }
   },
   'Injector case': {
     ...AL, titulo: 'Carcasa del inyector',
     queEs: 'Aloja el inyector y lo mantiene alineado y sellado.',
-    presion: '',
-    medidas: 'Brida de Ø120 mm, cuerpo de Ø65 mm, 45 mm de largo total'
+    presion: '', medidas: 'Brida de Ø120 mm, cuerpo de Ø65 mm, 45 mm de largo total'
   },
   'Brida Injector': {
     ...AL, titulo: 'Brida del inyector',
     queEs: 'Anillo atornillado que une y sella el extremo del inyector con el resto del motor.',
-    presion: '',
-    medidas: 'Ø120 mm, 20 mm de grosor'
+    presion: '', medidas: 'Ø120 mm, 20 mm de grosor'
   },
   'Casing': {
     ...AL, titulo: 'Carcasa (casing)',
-    queEs: 'Es el tubo exterior del motor: resiste la presión de adentro y le da resistencia estructural. Lleva una brida soldada en cada extremo para unir el resto de las piezas.',
-    presion: '', medidas: '',
-    extra: { 'Bridas': '2 bridas soldadas de Ø116 mm y 20 mm de grosor' },
+    queEs: 'Es el tubo exterior del motor: resiste la presión de adentro y le da resistencia estructural.',
+    presion: '', medidas: '', extra: { 'Bridas': '2 bridas soldadas de Ø116 mm y 20 mm de grosor' },
     explosion: { lift: 0.5 }
   },
   'Fenolico': {
     ...FEN, titulo: 'Aislante fenólico',
-    queEs: 'Capa que protege la carcasa del calor de la combustión. Se va carbonizando poco a poco para cuidar lo que hay detrás.',
-    presion: '', medidas: '',
-    explosion: { lift: 0.25 }
+    queEs: 'Capa que protege la carcasa del calor de la combustión. Se va carbonizando poco a poco.',
+    presion: '', medidas: '', explosion: { lift: 0.25 }
   },
   'Pre-CC': {
     ...FEN, titulo: 'Precámara de combustión',
-    queEs: 'Espacio antes del combustible donde el oxidante se mezcla y se estabiliza antes de empezar a quemarse.',
-    presion: '',
-    medidas: 'Ø exterior 65 mm, Ø interior 51 mm, 23 mm de largo'
+    queEs: 'Espacio antes del combustible donde el oxidante se mezcla y se estabiliza.',
+    presion: '', medidas: 'Ø exterior 65 mm, Ø interior 51 mm, 23 mm de largo'
   },
   'Grano': {
     titulo: 'Grano (combustible)',
-    queEs: 'Es el combustible sólido del motor. Al pasar el oxidante por su canal central se quema y genera los gases calientes que dan el empuje.',
-    material: 'HDPE (polietileno de alta densidad)',
-    tempMax: 'Se funde a ~130 °C y se descompone a ~400 °C; se consume al quemarse',
+    queEs: 'Es el combustible sólido del motor. Al pasar el oxidante por su canal central se quema y genera empuje.',
+    material: 'HDPE (polietileno de alta densidad)', tempMax: 'Se funde a ~130 °C y se descompone a ~400 °C',
     presion: '', medidas: ''
   },
   'Injerto': {
     titulo: 'Injerto de grafito',
-    queEs: 'Pieza de grafito que forma la garganta, el punto más angosto de la tobera. Ahí los gases van muy rápido y muy calientes, por eso se usa un material que aguanta temperaturas extremas.',
-    material: 'Grafito',
-    tempMax: 'Más de 2 200 °C',
-    presion: '',
-    medidas: 'Ø exterior 45 mm, 40.67 mm de largo',
-    extra: { 'Diámetro de la garganta': '≈ 33.9 mm' }
+    queEs: 'Pieza de grafito que forma la garganta, el punto más angosto de la tobera.',
+    material: 'Grafito', tempMax: 'Más de 2 200 °C', presion: '',
+    medidas: 'Ø exterior 45 mm, 40.67 mm de largo', extra: { 'Diámetro de la garganta': '≈ 33.9 mm' }
   },
   'Tobera': {
     ...FEN, titulo: 'Tobera',
     queEs: 'Es la salida en forma de campana: acelera los gases calientes y los convierte en empuje.',
-    presion: '',
-    medidas: 'Largo 138.33 mm, Ø máximo 75 mm',
-    extra: { 'Diámetro de salida': '52.05 mm' }
+    presion: '', medidas: 'Largo 138.33 mm, Ø máximo 75 mm', extra: { 'Diámetro de salida': '52.05 mm' }
   },
   'Brida Tobera': {
     ...AL, titulo: 'Brida de la tobera',
-    queEs: 'Anillo atornillado que une y sella la tobera en el extremo de salida del motor.',
-    presion: '',
-    medidas: 'Brida de Ø120 mm, cuerpo de Ø85 mm, 65 mm de largo total'
+    queEs: 'Anillo atornillado que une y sella la tobera.',
+    presion: '', medidas: 'Brida de Ø120 mm, cuerpo de Ø85 mm, 65 mm de largo total'
   }
 };
 
@@ -321,7 +339,7 @@ $('#titulo').textContent = CONFIG.titulo;
 document.title = CONFIG.titulo;
 
 /* ==========================================================================
-   3. ESCENA Y PLANO DE CORTE TRANSVERSAL SÓLIDO (CAPS)
+   3. ESCENA, LUZ Y PLANO DE CORTE
    ========================================================================== */
 const stage = $('#stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, stencil: true });
@@ -337,24 +355,15 @@ scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 const planoCorte = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);
 let corteActivo = false;
 
-// Malla que cubre el plano para simular relleno sólido en el corte
-const capGroup = new THREE.Group();
-scene.add(capGroup);
-
 const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.enablePan = false;
 controls.autoRotateSpeed = 0.9;
 
-function ajustarTamano() {
-  const w = stage.clientWidth, h = stage.clientHeight;
-  renderer.setSize(w, h);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-}
-new ResizeObserver(ajustarTamano).observe(stage);
-ajustarTamano();
+// Luz de Fuego Dinámica
+const fuegoLuz = new THREE.PointLight(0xff5500, 0, 10);
+scene.add(fuegoLuz);
 
 /* ==========================================================================
    4. CARGA Y PREPARACIÓN DEL MODELO
@@ -369,6 +378,19 @@ let lineaCentro = null;
 let centroGeneral = new THREE.Vector3();
 let distMinCamara = 0.5, distMaxCamara = 10;
 
+// Variables de Fuego y Flujo
+let fuegoGrupo = new THREE.Group();
+let llamaInterna, plumaEscape;
+let fuegoActivo = false;
+let flujoActivo = false;
+let particulasFlujo = [];
+let flujoGrupo = new THREE.Group();
+let tiempoFuego = 0;
+let largoMotorGlobal = 1;
+
+scene.add(fuegoGrupo);
+scene.add(flujoGrupo);
+
 new GLTFLoader().load(
   CONFIG.modelo,
   gltf => {
@@ -378,7 +400,7 @@ new GLTFLoader().load(
   xhr => { if (xhr.total) mensaje('Cargando modelo… ' + Math.round(100 * xhr.loaded / xhr.total) + ' %'); },
   err => {
     console.error(err);
-    mensaje('No se pudo cargar ' + CONFIG.modelo + '. Revisa que el archivo esté en la raíz de tu proyecto.', true);
+    mensaje('No se pudo cargar ' + CONFIG.modelo + '. Revisa que esté en la raíz de tu proyecto.', true);
   }
 );
 
@@ -399,7 +421,6 @@ function iniciar(gltf) {
   let objs = hijosValidos(raiz);
   while (objs.length === 1 && !objs[0].isMesh && objs[0].children.length) { raiz = objs[0]; objs = hijosValidos(raiz); }
   if (!objs.length) { objs = []; modelo.traverse(o => { if (o.isMesh) objs.push(o); }); }
-  if (!objs.length) throw new Error('el GLB no contiene piezas con geometría.');
 
   const caja = new THREE.Box3().setFromObject(raiz);
   const tam = caja.getSize(new THREE.Vector3());
@@ -411,6 +432,7 @@ function iniciar(gltf) {
   const eje = CONFIG.ejeMotor === 'auto' ? ejes.reduce((a, b) => (tam[b] > tam[a] ? b : a)) : CONFIG.ejeMotor;
   const otros = ejes.filter(e => e !== eje);
   const L = tam[eje];
+  largoMotorGlobal = L;
   const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
   const dirArriba = eje === 'y' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
 
@@ -422,12 +444,10 @@ function iniciar(gltf) {
 
     obj.traverse(m => {
       if (!m.isMesh) return;
-      
-      // Renderizado sólido rellenando las caras traseras al cortar
       m.material = Array.isArray(m.material) ? m.material.map(x => x.clone()) : m.material.clone();
       (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => { 
         x.side = THREE.DoubleSide; 
-        x.shadowSide = THREE.DoubleSide;
+        x.transparent = true;
         pt.mats.push(x); 
       });
       m.userData.parte = pt;
@@ -487,6 +507,41 @@ function iniciar(gltf) {
   luz.target.position.copy(centro);
   scene.add(luz, luz.target);
 
+  /* Creación de Geometría de Fuego (Llama Interna + Chorro de Escape 2.5x) */
+  const matFuegoInt = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.85 });
+  const geoFuegoInt = new THREE.CylinderGeometry(L * 0.04, L * 0.04, L * 0.7, 16);
+  llamaInterna = new THREE.Mesh(geoFuegoInt, matFuegoInt);
+  
+  const matFuegoEsc = new THREE.MeshBasicMaterial({ color: 0xff3300, transparent: true, opacity: 0.75 });
+  const geoFuegoEsc = new THREE.ConeGeometry(L * 0.15, L * 2.5, 32);
+  plumaEscape = new THREE.Mesh(geoFuegoEsc, matFuegoEsc);
+
+  if (eje === 'z') {
+    llamaInterna.rotation.x = Math.PI / 2;
+    plumaEscape.rotation.x = -Math.PI / 2;
+    llamaInterna.position.copy(centro).add(new THREE.Vector3(0, 0, -L * 0.1));
+    plumaEscape.position.copy(centro).add(new THREE.Vector3(0, 0, L * 1.75));
+  } else {
+    llamaInterna.rotation.z = Math.PI / 2;
+    plumaEscape.rotation.z = -Math.PI / 2;
+    llamaInterna.position.copy(centro).add(new THREE.Vector3(-L * 0.1, 0, 0));
+    plumaEscape.position.copy(centro).add(new THREE.Vector3(L * 1.75, 0, 0));
+  }
+
+  fuegoGrupo.add(llamaInterna, plumaEscape);
+  fuegoGrupo.visible = false;
+  fuegoLuz.position.copy(plumaEscape.position);
+
+  /* Creación de Partículas de Flujo del Oxidante */
+  const geoPart = new THREE.SphereGeometry(L * 0.012, 8, 8);
+  const matPart = new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.8 });
+  for (let i = 0; i < 25; i++) {
+    const p = new THREE.Mesh(geoPart, matPart);
+    flujoGrupo.add(p);
+    particulasFlujo.push({ mesh: p, progreso: Math.random() });
+  }
+  flujoGrupo.visible = false;
+
   const vista = (eje === 'z' ? new THREE.Vector3(1, 0.3, 0.25) : new THREE.Vector3(0.25, 0.3, 1)).normalize();
   
   encuadrar = () => {
@@ -498,7 +553,7 @@ function iniciar(gltf) {
     const dist = 1.25 * Math.max((ancho / 2) / Math.tan(fovH / 2), (alto / 2) / Math.tan(fov / 2)) + diamMax / 2;
     
     distMinCamara = dist * 0.25;
-    distMaxCamara = dist * 2.2;
+    distMaxCamara = dist * 3.5;
     
     camera.position.copy(centro).addScaledVector(vista, dist);
     controls.target.copy(centro);
@@ -519,14 +574,14 @@ function iniciar(gltf) {
    5. SELECCIÓN Y FICHA
    ========================================================================== */
 function estadoVisual(pt, modo) {
+  const opacidadBase = 1 - ($('#xray').value / 100) * 0.75;
   for (const m of pt.mats) {
     if ('emissive' in m) {
       if (modo === 'sel') { m.emissive.set(0xE8590C); m.emissiveIntensity = 0.5; }
       else { m.emissive.set(0x000000); m.emissiveIntensity = 1; }
     }
-    m.transparent = modo === 'dim';
-    m.opacity = modo === 'dim' ? 0.16 : 1;
-    m.depthWrite = modo !== 'dim';
+    m.opacity = modo === 'dim' ? 0.16 : opacidadBase;
+    m.depthWrite = modo !== 'dim' && opacidadBase > 0.8;
   }
 }
 
@@ -535,7 +590,7 @@ function seleccionar(pt) {
   partes.forEach(p => estadoVisual(p, !pt ? 'normal' : (p === pt ? 'sel' : 'dim')));
   partes.forEach(p => p.boton && p.boton.setAttribute('aria-pressed', String(p === pt)));
   if (pt) { $('#pista').classList.add('oculta'); controls.autoRotate = false; }
-  else if (girarAuto) controls.autoRotate = true;
+  else if (girarAuto && !fuegoActivo) controls.autoRotate = true;
   mostrarFicha(pt);
 }
 
@@ -602,8 +657,38 @@ renderer.domElement.addEventListener('pointerup', e => {
 $('#cerrar').addEventListener('click', () => seleccionar(null));
 
 /* ==========================================================================
-   6. CONTROLES Y ARRASTRE DE TARJETA
+   6. CONTROLES DE INTERFAZ Y EVENTOS
    ========================================================================== */
+/* Botón Fire Test */
+$('#btn-fire').addEventListener('click', e => {
+  fuegoActivo = !fuegoActivo;
+  e.currentTarget.setAttribute('aria-pressed', String(fuegoActivo));
+  fuegoGrupo.visible = fuegoActivo;
+  $('#telemetria').classList.toggle('activo', fuegoActivo);
+  $('#bloque-throttle').classList.toggle('activo', fuegoActivo);
+  
+  if (fuegoActivo) {
+    tiempoFuego = 0;
+    controls.autoRotate = false;
+  } else {
+    fuegoLuz.intensity = 0;
+    if (girarAuto && !actual) controls.autoRotate = true;
+  }
+});
+
+/* Botón Flujo del Oxidante */
+$('#btn-flow').addEventListener('click', e => {
+  flujoActivo = !flujoActivo;
+  e.currentTarget.setAttribute('aria-pressed', String(flujoActivo));
+  flujoGrupo.visible = flujoActivo;
+});
+
+/* Slider X-Ray Transparencia */
+$('#xray').addEventListener('input', () => {
+  partes.forEach(p => estadoVisual(p, actual === p ? 'sel' : (actual ? 'dim' : 'normal')));
+});
+
+/* Ocultar/Mostrar Lista */
 let listaVisible = true;
 $('#btn-toggle-lista').addEventListener('click', e => {
   listaVisible = !listaVisible;
@@ -624,7 +709,7 @@ $('#btn-corte').addEventListener('click', e => {
   });
 });
 
-/* Arrastre de la tarjeta de información */
+/* Arrastre Ficha Informativa */
 const panelEl = $('#panel');
 let arrastrando = false;
 let offset = { x: 0, y: 0 };
@@ -649,7 +734,7 @@ $('#panel-header').addEventListener('pointerup', e => {
   panelEl.releasePointerCapture(e.pointerId);
 });
 
-/* Zoom Slider */
+/* Sliders Zoom y Explosión */
 $('#zoom').addEventListener('input', e => {
   const val = e.target.value / 100;
   const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
@@ -669,27 +754,31 @@ $('#btn-girar').setAttribute('aria-pressed', String(girarAuto));
 $('#btn-girar').addEventListener('click', e => {
   girarAuto = !girarAuto;
   e.currentTarget.setAttribute('aria-pressed', String(girarAuto));
-  controls.autoRotate = girarAuto && !actual;
+  controls.autoRotate = girarAuto && !actual && !fuegoActivo;
 });
 
 $('#btn-reset').addEventListener('click', () => {
   seleccionar(null);
-  objetivoT = 0; $('#explosion').value = 0;
+  objetivoT = 0; $('#explosion').value = 0; $('#xray').value = 0;
   
   corteActivo = false;
   $('#btn-corte').setAttribute('aria-pressed', 'false');
   partes.forEach(pt => {
     pt.mats.forEach(m => { m.clippingPlanes = []; m.needsUpdate = true; });
+    estadoVisual(pt, 'normal');
   });
 
-  encuadrar();
-});
+  fuegoActivo = false;
+  $('#btn-fire').setAttribute('aria-pressed', 'false');
+  fuegoGrupo.visible = false;
+  $('#telemetria').classList.remove('activo');
+  $('#bloque-throttle').classList.remove('activo');
 
-let espera;
-controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(espera); });
-controls.addEventListener('end', () => {
-  clearTimeout(espera);
-  espera = setTimeout(() => { if (girarAuto && !actual) controls.autoRotate = true; }, 12000);
+  flujoActivo = false;
+  $('#btn-flow').setAttribute('aria-pressed', 'false');
+  flujoGrupo.visible = false;
+
+  encuadrar();
 });
 
 /* ==========================================================================
@@ -705,6 +794,40 @@ renderer.setAnimationLoop(() => {
 
   if (Math.abs(objetivoT - t) > 0.0005) { t += (objetivoT - t) * Math.min(1, dt * 7); aplicarExplosion(); }
   else if (t !== objetivoT) { t = objetivoT; aplicarExplosion(); }
+
+  // Animación del Fuego y Telemetría Dinámica
+  if (fuegoActivo) {
+    tiempoFuego += dt;
+    const throttleVal = $('#throttle').value / 100;
+    const chispas = 1 + (Math.random() - 0.5) * 0.08;
+    
+    // Escalar la llama exterior a 2.5x con fluctuación de potencia
+    plumaEscape.scale.set(throttleVal * chispas, throttleVal * chispas, throttleVal * chispas);
+    fuegoLuz.intensity = 3.5 * throttleVal * chispas;
+
+    // Actualizar telemetría simulada
+    const thrust = (1.2 * throttleVal * chispas).toFixed(2);
+    const press = (38 * throttleVal * chispas).toFixed(1);
+    const flow = (0.45 * throttleVal * chispas).toFixed(2);
+    
+    $('#m-thrust').textContent = `${thrust} kN`;
+    $('#m-press').textContent = `${press} bar`;
+    $('#m-flow').textContent = `${flow} kg/s`;
+    
+    const min = Math.floor(tiempoFuego / 60);
+    const seg = (tiempoFuego % 60).toFixed(1);
+    $('#m-time').textContent = `${min < 10 ? '0' : ''}${min}:${seg < 10 ? '0' : ''}${seg}s`;
+  }
+
+  // Animación del Flujo del Oxidante
+  if (flujoActivo) {
+    particulasFlujo.forEach(p => {
+      p.progreso += dt * 0.6;
+      if (p.progreso > 1) p.progreso = 0;
+      const offsetPos = (p.progreso - 0.5) * largoMotorGlobal * 0.8;
+      p.mesh.position.copy(centroGeneral).add(new THREE.Vector3(0, 0, offsetPos));
+    });
+  }
 
   if (partes.length) {
     const destino = actual ? tmpCaja.setFromObject(actual.obj).getCenter(tmpCentro) : centroGeneral;
