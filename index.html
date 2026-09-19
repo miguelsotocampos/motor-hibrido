@@ -381,6 +381,7 @@ function iniciar(gltf) {
 
     const cajaP = new THREE.Box3().setFromObject(obj);
     const c = cajaP.getCenter(new THREE.Vector3());
+    pt.centroPieza = c.clone();
     pt.rel = L > 0 ? c[eje] / L : 0;
 
     const s = cajaP.getSize(new THREE.Vector3());
@@ -390,16 +391,20 @@ function iniciar(gltf) {
     return pt;
   });
 
+  // Ordenamos de izquierda a derecha en el eje longitudinal
   partes.sort((a, b) => a.rel - b.rel);
 
-  let piezaTobera = partes.find(p => p.clave.includes('nozzle')) || partes[0];
+  let piezaTobera = partes.find(p => p.clave.includes('nozzle')) || partes[partes.length - 1];
   const cajaTobera = new THREE.Box3().setFromObject(piezaTobera.obj);
   cajaTobera.getCenter(extremoTobera);
   
   direccionSalida.copy(extremoTobera).sub(centroGeneral).normalize();
 
-  /* ESQUEMA DE DISTANCIAS PERSONALIZADAS PARA EXPLOSIONADO SIN CASING APILADO */
-  const factorMultiplicador = L * 0.45;
+  // Buscar el índice del Casing Principal para usarlo como ancla central
+  const idxCasing = partes.findIndex(p => p.clave.includes('casing') && !p.clave.includes('nozzle'));
+  const centroIndex = idxCasing !== -1 ? idxCasing : Math.floor(partes.length / 2);
+
+  const pasoSeparacion = L * 0.35; // Espaciado constante para que ninguna pieza se solape
 
   partes.forEach((pt, i) => {
     const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
@@ -410,29 +415,11 @@ function iniciar(gltf) {
     });
     pt.hex = hex;
 
-    // Asignación de desfase según el tipo de pieza
-    let factorAxial = 0;
-    const c = pt.clave;
+    // Desplazamiento progresivo basado en la posición en la cadena de ensamble
+    const offsetIndice = i - centroIndex;
+    const factorAxial = offsetIndice * pasoSeparacion;
 
-    if (c.includes('casing') && !c.includes('nozzle')) {
-      factorAxial = 0; // Carcasa fija al centro
-    } else if (c.includes('grainstep') || c.includes('grano')) {
-      factorAxial = 0.35; // Asoma ligeramente del casing
-    } else if (c.includes('phenolics') || c.includes('liner')) {
-      factorAxial = -0.35; // Asoma hacia el lado opuesto del casing
-    } else if (c.includes('pre-cc')) {
-      factorAxial = -0.65; // Sale de la precámara
-    } else if (c.includes('injector') || c.includes('inyector')) {
-      factorAxial = -1.1 - (i * 0.15); // Inyectores ordenados a la izquierda
-    } else if (c.includes('injerto') || c.includes('grafito')) {
-      factorAxial = 0.75;
-    } else if (c.includes('nozzle') || c.includes('tobera')) {
-      factorAxial = 1.15 + (i * 0.12); // Toberas y componentes ordenados a la derecha
-    } else {
-      factorAxial = pt.rel * 1.5;
-    }
-
-    const mundo = dirEje.clone().multiplyScalar(factorAxial * factorMultiplicador);
+    const mundo = dirEje.clone().multiplyScalar(factorAxial);
     const padre = pt.obj.parent;
     padre.updateWorldMatrix(true, false);
     const inv = new THREE.Matrix4().copy(padre.matrixWorld).invert();
