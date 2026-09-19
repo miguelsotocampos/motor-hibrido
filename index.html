@@ -37,7 +37,7 @@
   }
   #stage canvas { display: block; touch-action: none; }
 
-  /* ENCABEZADO MEJORADO */
+  /* ENCABEZADO */
   #cabecera { 
     position: fixed; top: 12px; left: 16px; pointer-events: none; z-index: 2;
     max-width: calc(100vw - 32px);
@@ -48,7 +48,7 @@
   }
   #pista { margin: 4px 0 0; color: var(--tinta-suave); font-size: clamp(12px, 3vw, 16px); }
 
-  /* BOTONERA ADAPTATIVA MÓVIL / IPAD */
+  /* BOTONERA ADAPTATIVA */
   #acciones { 
     position: fixed; top: 12px; right: 16px; 
     display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; z-index: 10;
@@ -62,7 +62,7 @@
   #acciones button[aria-pressed="true"] { background: var(--tinta); color: #fff; border-color: var(--tinta); }
   #btn-fire[aria-pressed="true"] { background: var(--brasa); color: #fff; border-color: var(--brasa); }
 
-  /* LISTA REDISEÑADA PARA MÓVIL Y TABLET */
+  /* LISTA DE PIEZAS */
   #lista {
     position: fixed; left: 16px; top: 80px; bottom: 160px; width: 125px;
     display: flex; flex-direction: column; gap: 4px; overflow-y: auto;
@@ -95,7 +95,7 @@
   #p-datos dt { font-size: 11px; color: var(--tinta-suave); font-weight: 500; }
   #p-datos dd { margin: 1px 0 0; font-size: 13px; font-weight: 600; }
 
-  /* CONTROLES INFERIORES COMPACTOS */
+  /* CONTROLES INFERIORES */
   #controles-contenedor {
     position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%);
     width: min(520px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; z-index: 10;
@@ -110,24 +110,15 @@
   #estado { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(231,238,242,.92); z-index: 100; }
   #estado.oculto { display: none; }
 
-  /* AJUSTES ESPECÍFICOS PARA PANTALLAS PEQUEÑAS / MÓVILES (PORTRAIT) */
   @media (max-width: 600px) {
     #acciones { 
       position: fixed; top: auto; bottom: 135px; left: 12px; right: 12px;
       max-width: 100vw; justify-content: center; gap: 4px;
     }
     #acciones button { padding: 0 8px; font-size: 11px; min-height: 32px; flex: 1; text-align: center; }
-    
     #cabecera { top: 8px; left: 12px; }
-    
-    #lista {
-      top: 55px; bottom: 175px; left: 12px; width: 110px;
-    }
-    
-    #panel {
-      top: 55px; right: 12px; width: calc(100vw - 24px); max-height: 40vh;
-    }
-
+    #lista { top: 55px; bottom: 175px; left: 12px; width: 110px; }
+    #panel { top: 55px; right: 12px; width: calc(100vw - 24px); max-height: 40vh; }
     #controles-contenedor { bottom: 8px; gap: 4px; }
     .bloque-control { padding: 4px 10px 6px; }
     .bloque-control label { font-size: 13px; }
@@ -205,7 +196,7 @@ const CONFIG = {
   ensamble: 'Ensamble macho',
   ignorar: ['Cube'],
   ejeMotor: 'auto',
-  expansion: 1.4,
+  expansion: 1.2,
   colorear: true,
   rotacionAutomatica: true,
   aMilimetros: 1000
@@ -370,7 +361,6 @@ function iniciar(gltf) {
   const otros = ejes.filter(e => e !== eje);
   const L = tam[eje];
   const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
-  const dirArriba = eje === 'y' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
 
   const normalLateral = new THREE.Vector3(1, 0, 0).applyQuaternion(modelo.quaternion).normalize();
   planoCorte.setFromNormalAndCoplanarPoint(normalLateral, centroGeneral);
@@ -408,6 +398,9 @@ function iniciar(gltf) {
   
   direccionSalida.copy(extremoTobera).sub(centroGeneral).normalize();
 
+  /* ESQUEMA DE DISTANCIAS PERSONALIZADAS PARA EXPLOSIONADO SIN CASING APILADO */
+  const factorMultiplicador = L * 0.45;
+
   partes.forEach((pt, i) => {
     const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
     let hex = '#9AAAB6';
@@ -417,10 +410,29 @@ function iniciar(gltf) {
     });
     pt.hex = hex;
 
-    const ex = (pt.info && pt.info.explosion) || {};
-    const axial = typeof ex.axial === 'number' ? ex.axial : pt.rel * CONFIG.expansion;
-    const lift = typeof ex.lift === 'number' ? ex.lift : 0;
-    const mundo = dirEje.clone().multiplyScalar(axial * L).addScaledVector(dirArriba, lift * L);
+    // Asignación de desfase según el tipo de pieza
+    let factorAxial = 0;
+    const c = pt.clave;
+
+    if (c.includes('casing') && !c.includes('nozzle')) {
+      factorAxial = 0; // Carcasa fija al centro
+    } else if (c.includes('grainstep') || c.includes('grano')) {
+      factorAxial = 0.35; // Asoma ligeramente del casing
+    } else if (c.includes('phenolics') || c.includes('liner')) {
+      factorAxial = -0.35; // Asoma hacia el lado opuesto del casing
+    } else if (c.includes('pre-cc')) {
+      factorAxial = -0.65; // Sale de la precámara
+    } else if (c.includes('injector') || c.includes('inyector')) {
+      factorAxial = -1.1 - (i * 0.15); // Inyectores ordenados a la izquierda
+    } else if (c.includes('injerto') || c.includes('grafito')) {
+      factorAxial = 0.75;
+    } else if (c.includes('nozzle') || c.includes('tobera')) {
+      factorAxial = 1.15 + (i * 0.12); // Toberas y componentes ordenados a la derecha
+    } else {
+      factorAxial = pt.rel * 1.5;
+    }
+
+    const mundo = dirEje.clone().multiplyScalar(factorAxial * factorMultiplicador);
     const padre = pt.obj.parent;
     padre.updateWorldMatrix(true, false);
     const inv = new THREE.Matrix4().copy(padre.matrixWorld).invert();
