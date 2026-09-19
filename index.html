@@ -253,8 +253,8 @@ const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-/* PLANO DE CORTE LONGITUDINAL REBANANDO A LA MITAD EN EL EJE X */
-let planoCorte = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+/* PLANO DE CORTE LONGITUDINAL (Pasa de lado a lado cortando a la mitad) */
+let planoCorte = new THREE.Plane();
 let corteActivo = false;
 
 const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
@@ -324,7 +324,7 @@ function iniciar(gltf) {
   modelo.traverse(o => { if (o.isCamera || o.isLight || (o !== modelo && ignorar.includes(clave(o.name)))) quitar.push(o); });
   quitar.forEach(o => o.parent && o.parent.remove(o));
   
-  // CENTRADO EXACTO DE GEOMETRÍA
+  // CENTRADO EXACTO DE GEOMETRÍA EN EL ORIGEN (0,0,0)
   const caja = new THREE.Box3().setFromObject(modelo);
   const centro = caja.getCenter(new THREE.Vector3());
   modelo.position.sub(centro);
@@ -339,7 +339,6 @@ function iniciar(gltf) {
   modelo.traverse(o => { if (o.isMesh) objs.push(o); });
 
   const tam = caja.getSize(new THREE.Vector3());
-
   const ejes = ['x', 'y', 'z'];
   const eje = CONFIG.ejeMotor === 'auto' ? ejes.reduce((a, b) => (tam[b] > tam[a] ? b : a)) : CONFIG.ejeMotor;
   const otros = ejes.filter(e => e !== eje);
@@ -347,8 +346,9 @@ function iniciar(gltf) {
   const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
   const dirArriba = eje === 'y' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
 
-  // Forzar el plano de corte para rebanar perpendicularmente a la vista 2D frontal
-  planoCorte = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+  // CONFIGURACIÓN DEL PLANO DE CORTE RESPECTO A LA ORIENTACIÓN DEL MODELO
+  const normalLateral = new THREE.Vector3(1, 0, 0).applyQuaternion(modelo.quaternion).normalize();
+  planoCorte.setFromNormalAndCoplanarPoint(normalLateral, centroGeneral);
 
   partes = objs.map(obj => {
     const pt = { obj, meshes: [obj], mats: [] };
@@ -377,7 +377,7 @@ function iniciar(gltf) {
 
   partes.sort((a, b) => a.rel - b.rel);
 
-  // Localizar extremo de la tobera para la emisión de partículas
+  // Localizar extremo de la tobera para la emisión de partículas del Fire Test
   let piezaTobera = partes.find(p => p.clave.includes('nozzle')) || partes[0];
   const cajaTobera = new THREE.Box3().setFromObject(piezaTobera.obj);
   cajaTobera.getCenter(extremoTobera);
@@ -431,7 +431,7 @@ function iniciar(gltf) {
   construirLista();
 }
 
-/* MODO RAYOS X (EFECTO SELECCIÓN) */
+/* MODO RAYOS X (TRANSPARENCIA AL SELECCIONAR) */
 function estadoVisual(pt, modo) {
   for (const m of pt.mats) {
     if ('emissive' in m) {
@@ -512,7 +512,7 @@ $('#btn-toggle-lista').addEventListener('click', e => {
   $('#lista').classList.toggle('oculto-lista', !listaVisible);
 });
 
-/* CORTE TRANSVERSAL */
+/* CORTE TRANSVERSAL LATERAL */
 $('#btn-corte').addEventListener('click', e => {
   corteActivo = !corteActivo;
   e.currentTarget.setAttribute('aria-pressed', String(corteActivo));
@@ -564,7 +564,6 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min(reloj.getDelta(), 0.05);
   if (Math.abs(objetivoT - t) > 0.0005) { t += (objetivoT - t) * Math.min(1, dt * 7); aplicarExplosion(); }
 
-  // Animación del Fire Test por la tobera
   if (fuegoActivo) {
     const pos = geoParticulas.attributes.position.array;
     for (let i = 0; i < cantParticulas; i++) {
