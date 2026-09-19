@@ -67,8 +67,9 @@
     border: 1px solid var(--borde); border-radius: 6px; font-size: 15px; font-weight: 500;
   }
   #acciones button[aria-pressed="true"] { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+  #btn-fire[aria-pressed="true"] { background: var(--brasa); color: #fff; border-color: var(--brasa); }
 
-  /* Ficha de información FIJA en la orilla derecha */
+  /* Ficha de información FIJA */
   #panel {
     position: fixed; right: 20px; top: 76px; width: min(320px, 80vw); max-height: 55vh;
     background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
@@ -110,6 +111,7 @@
 <nav id="lista" aria-label="Piezas del motor"></nav>
 
 <div id="acciones">
+  <button id="btn-fire" type="button" aria-pressed="false">🔥 Fire Test</button>
   <button id="btn-toggle-lista" type="button" aria-pressed="true">👁️ Piezas</button>
   <button id="btn-corte" type="button" aria-pressed="false">Corte Transversal</button>
   <button id="btn-girar" type="button" aria-pressed="true">Girar solo</button>
@@ -234,7 +236,7 @@ function buscarInfo(nombreCad) {
 }
 
 const stage = $('#stage');
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, stencil: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.localClippingEnabled = true;
@@ -244,13 +246,9 @@ const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-const planoCorte = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);
+/* PLANO DE CORTE LIMPIO SOBRE EL EJE Z */
+const planoCorte = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
 let corteActivo = false;
-
-const matCapCorte = new THREE.MeshBasicMaterial({ color: 0x12283A, side: THREE.DoubleSide });
-const planoCapMesh = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), matCapCorte);
-planoCapMesh.visible = false;
-scene.add(planoCapMesh);
 
 const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -275,6 +273,33 @@ let encuadrar = () => {};
 let aplicarExplosion = () => {};
 let centroGeneral = new THREE.Vector3();
 let distMinCamara = 0.5, distMaxCamara = 10;
+let extremoTobera = new THREE.Vector3();
+
+/* SISTEMA DE PARTÍCULAS PARA FIRE TEST */
+const cantParticulas = 300;
+const geoParticulas = new THREE.BufferGeometry();
+const posParticulas = new Float32Array(cantParticulas * 3);
+const velParticulas = [];
+
+for (let i = 0; i < cantParticulas; i++) {
+  posParticulas[i * 3] = 0;
+  posParticulas[i * 3 + 1] = 0;
+  posParticulas[i * 3 + 2] = 0;
+  velParticulas.push(new THREE.Vector3());
+}
+geoParticulas.setAttribute('position', new THREE.BufferAttribute(posParticulas, 3));
+
+const matParticulas = new THREE.PointsMaterial({
+  color: 0xff5500,
+  size: 0.08,
+  transparent: true,
+  opacity: 0.8,
+  blending: THREE.AdditiveBlending
+});
+const fuegoMesh = new THREE.Points(geoParticulas, matParticulas);
+fuegoMesh.visible = false;
+scene.add(fuegoMesh);
+let fuegoActivo = false;
 
 new GLTFLoader().load(
   CONFIG.modelo,
@@ -294,12 +319,11 @@ function iniciar(gltf) {
   // CENTRADO EXACTO DE GEOMETRÍA EN EL ORIGEN (0,0,0)
   const caja = new THREE.Box3().setFromObject(modelo);
   const centro = caja.getCenter(new THREE.Vector3());
-  modelo.position.sub(centro); // Traslada el modelo completo al punto medio verdadero
+  modelo.position.sub(centro);
   
   scene.add(modelo);
   modelo.updateMatrixWorld(true);
 
-  // Recalcular caja centrada
   caja.setFromObject(modelo);
   caja.getCenter(centroGeneral);
 
@@ -309,15 +333,15 @@ function iniciar(gltf) {
   const tam = caja.getSize(new THREE.Vector3());
   planoCorte.constant = 0;
 
-  planoCapMesh.position.set(0,0,0);
-  planoCapMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), planoCorte.normal);
-
   const ejes = ['x', 'y', 'z'];
   const eje = CONFIG.ejeMotor === 'auto' ? ejes.reduce((a, b) => (tam[b] > tam[a] ? b : a)) : CONFIG.ejeMotor;
   const otros = ejes.filter(e => e !== eje);
   const L = tam[eje];
   const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
   const dirArriba = eje === 'y' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+
+  // Extremo para la salida del fuego
+  extremoTobera.copy(centroGeneral).addScaledVector(dirEje, L * 0.5);
 
   partes = objs.map(obj => {
     const pt = { obj, meshes: [obj], mats: [] };
@@ -392,9 +416,26 @@ function iniciar(gltf) {
   construirLista();
 }
 
+/* EFECTO RAYOS X (TRANSPARENCIA AL SELECCIONAR) */
+function estadoVisual(pt, modo) {
+  for (const m of pt.mats) {
+    if ('emissive' in m) {
+      if (modo === 'sel') { m.emissive.set(0xE8590C); m.emissiveIntensity = 0.5; }
+      else { m.emissive.set(0x000000); m.emissiveIntensity = 0; }
+    }
+    m.transparent = (modo === 'dim');
+    m.opacity = (modo === 'dim') ? 0.2 : 1.0;
+    m.depthWrite = (modo !== 'dim');
+  }
+}
+
 function seleccionar(pt) {
   actual = pt;
-  partes.forEach(p => p.boton && p.boton.setAttribute('aria-pressed', String(p === pt)));
+  partes.forEach(p => {
+    const esSeleccionada = (p === pt);
+    estadoVisual(p, !pt ? 'normal' : (esSeleccionada ? 'sel' : 'dim'));
+    if (p.boton) p.boton.setAttribute('aria-pressed', String(esSeleccionada));
+  });
   mostrarFicha(pt);
 }
 
@@ -448,6 +489,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 
 $('#cerrar').addEventListener('click', () => seleccionar(null));
 
+/* LISTA OCULTABLE */
 let listaVisible = true;
 $('#btn-toggle-lista').addEventListener('click', e => {
   listaVisible = !listaVisible;
@@ -455,10 +497,10 @@ $('#btn-toggle-lista').addEventListener('click', e => {
   $('#lista').classList.toggle('oculto-lista', !listaVisible);
 });
 
+/* CORTE TRANSVERSAL */
 $('#btn-corte').addEventListener('click', e => {
   corteActivo = !corteActivo;
   e.currentTarget.setAttribute('aria-pressed', String(corteActivo));
-  planoCapMesh.visible = corteActivo;
   partes.forEach(pt => {
     pt.mats.forEach(m => {
       m.clippingPlanes = corteActivo ? [planoCorte] : [];
@@ -467,6 +509,14 @@ $('#btn-corte').addEventListener('click', e => {
   });
 });
 
+/* FIRE TEST SIMULADOR */
+$('#btn-fire').addEventListener('click', e => {
+  fuegoActivo = !fuegoActivo;
+  e.currentTarget.setAttribute('aria-pressed', String(fuegoActivo));
+  fuegoMesh.visible = fuegoActivo;
+});
+
+/* CONTROLES ZOOM / EXPLOSIÓN */
 $('#zoom').addEventListener('input', e => {
   const val = e.target.value / 100;
   const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
@@ -480,20 +530,47 @@ $('#btn-girar').addEventListener('click', e => {
   e.currentTarget.setAttribute('aria-pressed', String(girarAuto));
   controls.autoRotate = girarAuto;
 });
+
 $('#btn-reset').addEventListener('click', () => {
   seleccionar(null);
   objetivoT = 0; $('#explosion').value = 0;
   corteActivo = false;
-  planoCapMesh.visible = false;
+  fuegoActivo = false;
+  fuegoMesh.visible = false;
   $('#btn-corte').setAttribute('aria-pressed', 'false');
+  $('#btn-fire').setAttribute('aria-pressed', 'false');
   partes.forEach(pt => { pt.mats.forEach(m => { m.clippingPlanes = []; }); });
   encuadrar();
 });
 
+/* ANIMACIÓN Y FUEGO */
 const reloj = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(reloj.getDelta(), 0.05);
   if (Math.abs(objetivoT - t) > 0.0005) { t += (objetivoT - t) * Math.min(1, dt * 7); aplicarExplosion(); }
+
+  // Animación del Fire Test
+  if (fuegoActivo) {
+    const pos = geoParticulas.attributes.position.array;
+    for (let i = 0; i < cantParticulas; i++) {
+      if (velParticulas[i].lengthSq() === 0 || pos[i * 3 + 2] > 2.0) {
+        pos[i * 3] = extremoTobera.x + (Math.random() - 0.5) * 0.05;
+        pos[i * 3 + 1] = extremoTobera.y + (Math.random() - 0.5) * 0.05;
+        pos[i * 3 + 2] = extremoTobera.z;
+        velParticulas[i].set(
+          (Math.random() - 0.5) * 0.2,
+          (Math.random() - 0.5) * 0.2,
+          1.5 + Math.random() * 2.0
+        );
+      } else {
+        pos[i * 3] += velParticulas[i].x * dt;
+        pos[i * 3 + 1] += velParticulas[i].y * dt;
+        pos[i * 3 + 2] += velParticulas[i].z * dt;
+      }
+    }
+    geoParticulas.attributes.position.needsUpdate = true;
+  }
+
   controls.update();
   renderer.render(scene, camera);
 });
