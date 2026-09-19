@@ -183,30 +183,20 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /* ==========================================================================
-   1. CONFIGURACIÓN  (lo que normalmente vas a editar)
+   1. CONFIGURACIÓN
    ========================================================================== */
 const CONFIG = {
-  modelo: 'motor.glb',            // archivo GLB, en la misma carpeta que este index.html
+  modelo: 'motor.glb',            // Nombre del archivo GLB en GitHub
   titulo: 'Motor híbrido',
-  ensamble: 'Ensamble macho',     // nombre del objeto padre que agrupa las piezas
-  ignorar: ['Cube'],              // objetos que no son parte del motor
-  ejeMotor: 'auto',               // 'auto', 'x', 'y' o 'z': eje largo del motor
-  expansion: 1.4,                 // qué tanto se separan las piezas con el slider al 100 %
-  colorear: true,                 // true = cada pieza con su propio color (ayuda al público)
-  rotacionAutomatica: true,       // el motor gira solo cuando nadie lo toca
-  aMilimetros: 1000               // el GLB viene en metros; multiplica para mostrar milímetros
+  ensamble: 'Ensamble macho',     // Nombre del objeto padre que agrupa las piezas
+  ignorar: ['Cube'],              // Objetos que no forman parte del motor
+  ejeMotor: 'auto',               // 'auto', 'x', 'y' o 'z'
+  expansion: 3.2,                 // Distancia de explosión aumentada
+  colorear: true,                 // true = colorea piezas para diferenciarlas fácilmente
+  rotacionAutomatica: true,       // Rotación automática cuando está inactivo
+  aMilimetros: 1000               // Conversión a mm
 };
 
-/* Ficha de cada pieza. La clave es el nombre del objeto en Blender (da igual
-   mayúsculas, acentos, espacios o guiones).
-   - titulo / queEs: lo que verá el público (texto sencillo).
-   - material, tempMax, presion, medidas: datos técnicos (tempMax = límite del material, no medición del motor). Si dejas '' aparece
-     "Por completar". Si dejas 'medidas' vacío, se muestran las medidas tomadas
-     del modelo 3D.
-   - extra: filas adicionales opcionales, por ejemplo { 'Peso': '120 g' }.
-   - explosion: { axial, lift } en fracción del largo del motor.
-       axial = cuánto se corre a lo largo del motor (si no lo pones, se calcula solo).
-       lift  = cuánto se levanta hacia arriba (útil para piezas que envuelven a otras). */
 const AL = { material: 'Aluminio 6061', tempMax: 'Pierde resistencia desde ~150 °C y se debilita mucho por encima de 200 °C' };
 const FEN = { material: 'Fenólico', tempMax: 'Se descompone y carboniza entre ~350 y 850 °C (así protege lo que tiene detrás)' };
 
@@ -216,45 +206,50 @@ const PIEZAS = {
     queEs: 'Es la regadera del motor: reparte el oxidante, lo que permite que el combustible se queme, para que entre de forma pareja.',
     presion: '',
     medidas: 'Cabeza de Ø76.2 mm, 55 mm de largo total',
-    extra: { 'Orificios de inyección': '10 orificios de Ø1.24 mm', 'Entrada del oxidante': 'Rosca G 1/4 (BSPP)' }
+    extra: { 'Orificios de inyección': '10 orificios de Ø1.24 mm', 'Entrada del oxidante': 'Rosca G 1/4 (BSPP)' },
+    explosion: { axial: -1.8, lift: 0 }
   },
   'Injector case': {
     ...AL, titulo: 'Carcasa del inyector',
     queEs: 'Aloja el inyector y lo mantiene alineado y sellado.',
     presion: '',
-    medidas: 'Brida de Ø120 mm, cuerpo de Ø65 mm, 45 mm de largo total'
+    medidas: 'Brida de Ø120 mm, cuerpo de Ø65 mm, 45 mm de largo total',
+    explosion: { axial: -1.2, lift: 0.3 }
   },
   'Brida Injector': {
     ...AL, titulo: 'Brida del inyector',
     queEs: 'Anillo atornillado que une y sella el extremo del inyector con el resto del motor.',
     presion: '',
-    medidas: 'Ø120 mm, 20 mm de grosor'
+    medidas: 'Ø120 mm, 20 mm de grosor',
+    explosion: { axial: -0.7, lift: 0 }
   },
   'Casing': {
     ...AL, titulo: 'Carcasa (casing)',
     queEs: 'Es el tubo exterior del motor: resiste la presión de adentro y le da resistencia estructural. Lleva una brida soldada en cada extremo para unir el resto de las piezas.',
     presion: '', medidas: '',
     extra: { 'Bridas': '2 bridas soldadas de Ø116 mm y 20 mm de grosor' },
-    explosion: { lift: 0.5 }
+    explosion: { axial: 0, lift: 1.5 } // Se eleva fuera del eje central
   },
   'Fenolico': {
     ...FEN, titulo: 'Aislante fenólico',
     queEs: 'Capa que protege la carcasa del calor de la combustión. Se va carbonizando poco a poco para cuidar lo que hay detrás.',
     presion: '', medidas: '',
-    explosion: { lift: 0.25 }
+    explosion: { axial: 0, lift: -1.2 } // Desciende hacia el lado opuesto
   },
   'Pre-CC': {
     ...FEN, titulo: 'Precámara de combustión',
     queEs: 'Espacio antes del combustible donde el oxidante se mezcla y se estabiliza antes de empezar a quemarse.',
     presion: '',
-    medidas: 'Ø exterior 65 mm, Ø interior 51 mm, 23 mm de largo'
+    medidas: 'Ø exterior 65 mm, Ø interior 51 mm, 23 mm de largo',
+    explosion: { axial: 0.4, lift: 0 }
   },
   'Grano': {
     titulo: 'Grano (combustible)',
     queEs: 'Es el combustible sólido del motor. Al pasar el oxidante por su canal central se quema y genera los gases calientes que dan el empuje.',
     material: 'HDPE (polietileno de alta densidad)',
     tempMax: 'Se funde a ~130 °C y se descompone a ~400 °C; se consume al quemarse',
-    presion: '', medidas: ''
+    presion: '', medidas: '',
+    explosion: { axial: 0.8, lift: 0.6 } // Flota hacia arriba fuera de la estructura
   },
   'Injerto': {
     titulo: 'Injerto de grafito',
@@ -263,20 +258,23 @@ const PIEZAS = {
     tempMax: 'Más de 2 200 °C',
     presion: '',
     medidas: 'Ø exterior 45 mm, 40.67 mm de largo',
-    extra: { 'Diámetro de la garganta': '≈ 33.9 mm' }
+    extra: { 'Diámetro de la garganta': '≈ 33.9 mm' },
+    explosion: { axial: 1.3, lift: 0 }
   },
   'Tobera': {
     ...FEN, titulo: 'Tobera',
     queEs: 'Es la salida en forma de campana: acelera los gases calientes y los convierte en empuje.',
     presion: '',
     medidas: 'Largo 138.33 mm, Ø máximo 75 mm',
-    extra: { 'Diámetro de salida': '52.05 mm' }
+    extra: { 'Diámetro de salida': '52.05 mm' },
+    explosion: { axial: 1.8, lift: 0 }
   },
   'Brida Tobera': {
     ...AL, titulo: 'Brida de la tobera',
     queEs: 'Anillo atornillado que une y sella la tobera en el extremo de salida del motor.',
     presion: '',
-    medidas: 'Brida de Ø120 mm, cuerpo de Ø85 mm, 65 mm de largo total'
+    medidas: 'Brida de Ø120 mm, cuerpo de Ø85 mm, 65 mm de largo total',
+    explosion: { axial: 2.3, lift: 0 }
   }
 };
 
@@ -285,7 +283,7 @@ const PIEZAS = {
    ========================================================================== */
 const $ = s => document.querySelector(s);
 const clave = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-const claveInfo = s => clave(s).replace(/\d+$/, '');   // 'Brida Casing.001' se trata como 'Brida Casing'
+const claveInfo = s => clave(s).replace(/\d+$/, '');
 const INFO = new Map(Object.entries(PIEZAS).map(([n, d]) => [claveInfo(n), { ...d, _nombre: n }]));
 const reducirMovimiento = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -300,7 +298,7 @@ $('#titulo').textContent = CONFIG.titulo;
 document.title = CONFIG.titulo;
 
 /* ==========================================================================
-   3. ESCENA
+   3. ESCENA Y CONTROLES LIBRES
    ========================================================================== */
 const stage = $('#stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -315,7 +313,10 @@ scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.enablePan = false;
+controls.enablePan = true;          // Permite desplazar la cámara con 2 dedos en iPad
+controls.screenSpacePanning = true; 
+controls.maxPolarAngle = Math.PI;   // Ángulo vertical completo (arriba/abajo)
+controls.minPolarAngle = 0;
 controls.autoRotateSpeed = 0.9;
 
 function ajustarTamano() {
@@ -328,11 +329,11 @@ new ResizeObserver(ajustarTamano).observe(stage);
 ajustarTamano();
 
 /* ==========================================================================
-   4. CARGA Y PREPARACIÓN DEL MODELO
+   4. CARGA Y PREPARACIÓN
    ========================================================================== */
 let partes = [];
-let actual = null;          // pieza seleccionada
-let t = 0, objetivoT = 0;   // explosión actual y deseada (0 a 1)
+let actual = null;
+let t = 0, objetivoT = 0;
 let girarAuto = CONFIG.rotacionAutomatica && !reducirMovimiento;
 let encuadrar = () => {};
 let aplicarExplosion = () => {};
@@ -348,14 +349,13 @@ new GLTFLoader().load(
   xhr => { if (xhr.total) mensaje('Cargando modelo… ' + Math.round(100 * xhr.loaded / xhr.total) + ' %'); },
   err => {
     console.error(err);
-    mensaje('No se pudo cargar ' + CONFIG.modelo + '. Abre esta página desde un servidor (no con doble clic en el archivo) y revisa que ' + CONFIG.modelo + ' esté en la misma carpeta que index.html.', true);
+    mensaje('No se pudo cargar ' + CONFIG.modelo + '. Revisa que el archivo se llame "motor.glb" y esté en la raíz de tu proyecto.', true);
   }
 );
 
 function iniciar(gltf) {
   const modelo = gltf.scene;
 
-  // Quitar cámaras, luces y objetos que no son del motor
   const ignorar = CONFIG.ignorar.map(clave);
   const quitar = [];
   modelo.traverse(o => { if (o.isCamera || o.isLight || (o !== modelo && ignorar.includes(clave(o.name)))) quitar.push(o); });
@@ -363,7 +363,6 @@ function iniciar(gltf) {
   scene.add(modelo);
   modelo.updateMatrixWorld(true);
 
-  // Encontrar el conjunto de piezas
   const buscar = k => { let r = null; modelo.traverse(o => { if (!r && o !== modelo && clave(o.name) === k) r = o; }); return r; };
   const tieneMalla = o => { let v = false; o.traverse(c => { if (c.isMesh) v = true; }); return v; };
   const hijosValidos = r => r.children.filter(c => tieneMalla(c));
@@ -373,7 +372,6 @@ function iniciar(gltf) {
   if (!objs.length) { objs = []; modelo.traverse(o => { if (o.isMesh) objs.push(o); }); }
   if (!objs.length) throw new Error('el GLB no contiene piezas con geometría.');
 
-  // Medidas generales y eje del motor
   const caja = new THREE.Box3().setFromObject(raiz);
   const tam = caja.getSize(new THREE.Vector3());
   const centro = caja.getCenter(new THREE.Vector3());
@@ -385,7 +383,6 @@ function iniciar(gltf) {
   const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
   const dirArriba = eje === 'y' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
 
-  // Preparar cada pieza
   partes = objs.map(obj => {
     const pt = { obj, meshes: [], mats: [] };
     pt.clave = clave(obj.name);
@@ -402,7 +399,7 @@ function iniciar(gltf) {
 
     const cajaP = new THREE.Box3().setFromObject(obj);
     const c = cajaP.getCenter(new THREE.Vector3());
-    pt.rel = L > 0 ? (c[eje] - centro[eje]) / L : 0;                       // -0.5 a 0.5
+    pt.rel = L > 0 ? (c[eje] - centro[eje]) / L : 0;
 
     const s = new THREE.Box3().setFromObject(obj, true).getSize(new THREE.Vector3());
     const largo = Math.round(s[eje] * CONFIG.aMilimetros);
@@ -411,7 +408,6 @@ function iniciar(gltf) {
     return pt;
   });
 
-  // Ordenar de un extremo al otro y colorear
   partes.sort((a, b) => a.rel - b.rel);
   partes.forEach((pt, i) => {
     const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
@@ -422,7 +418,6 @@ function iniciar(gltf) {
     });
     pt.hex = hex;
 
-    // Desplazamiento de explosión (en el espacio local del padre)
     const ex = (pt.info && pt.info.explosion) || {};
     const axial = typeof ex.axial === 'number' ? ex.axial : pt.rel * CONFIG.expansion;
     const lift = typeof ex.lift === 'number' ? ex.lift : 0;
@@ -435,7 +430,6 @@ function iniciar(gltf) {
     pt.desplazamiento = mundo.applyMatrix4(inv).sub(origen);
   });
 
-  // Línea de centro (como en un plano técnico)
   const mitad = L * (1 + CONFIG.expansion) * 0.6;
   const geo = new THREE.BufferGeometry().setFromPoints([
     centro.clone().addScaledVector(dirEje, -mitad),
@@ -451,13 +445,11 @@ function iniciar(gltf) {
     matLinea.opacity = 0.6 * Math.min(1, t * 2.5);
   };
 
-  // Luz principal
   const luz = new THREE.DirectionalLight(0xffffff, 1.3);
   luz.position.copy(centro).add(new THREE.Vector3(1, 2, 1.5).multiplyScalar(Math.max(L, 0.1)));
   luz.target.position.copy(centro);
   scene.add(luz, luz.target);
 
-  // Encuadre de cámara
   const vista = (eje === 'z' ? new THREE.Vector3(1, 0.3, 0.25) : new THREE.Vector3(0.25, 0.3, 1)).normalize();
   encuadrar = () => {
     const fov = THREE.MathUtils.degToRad(camera.fov);
@@ -481,7 +473,7 @@ function iniciar(gltf) {
 }
 
 /* ==========================================================================
-   5. SELECCIÓN Y FICHA
+   5. SELECCIÓN E INSPECCIÓN INDIVIDUAL
    ========================================================================== */
 function estadoVisual(pt, modo) {
   for (const m of pt.mats) {
@@ -499,8 +491,18 @@ function seleccionar(pt) {
   actual = pt;
   partes.forEach(p => estadoVisual(p, !pt ? 'normal' : (p === pt ? 'sel' : 'dim')));
   partes.forEach(p => p.boton && p.boton.setAttribute('aria-pressed', String(p === pt)));
-  if (pt) { $('#pista').classList.add('oculta'); controls.autoRotate = false; }
-  else if (girarAuto) controls.autoRotate = true;
+  
+  if (pt) {
+    $('#pista').classList.add('oculta');
+    controls.autoRotate = false;
+    // La cámara centra su punto de rotación exactamente en la pieza seleccionada
+    const cajaPieza = new THREE.Box3().setFromObject(pt.obj);
+    const centroPieza = cajaPieza.getCenter(new THREE.Vector3());
+    controls.target.copy(centroPieza);
+  } else {
+    if (girarAuto) controls.autoRotate = true;
+    controls.target.copy(centroGeneral); // Regresa al centro completo del motor
+  }
   mostrarFicha(pt);
 }
 
@@ -544,7 +546,6 @@ function construirLista() {
   });
 }
 
-// Tocar una pieza en el modelo (distingue un toque de un arrastre)
 const rayo = new THREE.Raycaster();
 const puntero = new THREE.Vector2();
 let inicio = null;
@@ -564,7 +565,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 $('#cerrar').addEventListener('click', () => seleccionar(null));
 
 /* ==========================================================================
-   6. CONTROLES DE LA INTERFAZ
+   6. CONTROLES INTERFACE
    ========================================================================== */
 $('#explosion').addEventListener('input', e => { objetivoT = e.target.value / 100; });
 
@@ -581,7 +582,6 @@ $('#btn-reset').addEventListener('click', () => {
   encuadrar();
 });
 
-// El motor vuelve a girar solo tras unos segundos sin tocarlo
 let espera;
 controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(espera); });
 controls.addEventListener('end', () => {
@@ -590,7 +590,7 @@ controls.addEventListener('end', () => {
 });
 
 /* ==========================================================================
-   7. BUCLE DE ANIMACIÓN
+   7. BUCLE DE RENDEREADO
    ========================================================================== */
 const reloj = new THREE.Clock();
 const tmpCentro = new THREE.Vector3();
@@ -603,7 +603,6 @@ renderer.setAnimationLoop(() => {
   if (Math.abs(objetivoT - t) > 0.0005) { t += (objetivoT - t) * Math.min(1, dt * 7); aplicarExplosion(); }
   else if (t !== objetivoT) { t = objetivoT; aplicarExplosion(); }
 
-  // La cámara sigue a la pieza seleccionada (o al centro del motor)
   if (partes.length) {
     const destino = actual ? tmpCaja.setFromObject(actual.obj).getCenter(tmpCentro) : centroGeneral;
     tmpAntes.copy(controls.target);
@@ -614,9 +613,6 @@ renderer.setAnimationLoop(() => {
   controls.update();
   renderer.render(scene, camera);
 });
-
-// Guarda el visor y el modelo la primera vez que se abre, para poder usarlo sin internet
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
 </html>
