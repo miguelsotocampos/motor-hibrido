@@ -35,7 +35,13 @@
     background-size: 32px 32px;
     touch-action: none;
   }
-  #stage canvas { display: block; touch-action: none; }
+  #stage canvas { display: block; touch-action: none; position: relative; z-index: 1; }
+
+  /* MARCA DE AGUA (detrás del motor) */
+  #marca {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background-repeat: no-repeat; background-position: center;
+  }
 
   /* ENCABEZADO */
   #cabecera { 
@@ -203,34 +209,47 @@ const CONFIG = {
   // false = misma vista inicial de siempre.
   // true  = la cámara se coloca de modo que el inyector quede a la izquierda y la tobera a la derecha
   //         (mueve la cámara, no el modelo; el fuego saldrá hacia la derecha).
-  inyectorALaIzquierda: false
+  inyectorALaIzquierda: false,
+
+  // MARCA DE AGUA DE FONDO
+  // Pon la imagen en la misma carpeta que este HTML. Si no existe, simplemente no se muestra.
+  fondoImagen: 'fondo.png',
+  fondoOpacidad: 0.08,     // 0 = invisible, 1 = totalmente visible (0.05 - 0.2 es lo normal)
+  fondoTamano: '45%'       // tamaño de la imagen (también sirve 'contain', '600px', etc.)
 };
 
 // ============================================================
-//  DESTINO DE CADA PIEZA EN EL EXPLOSIONADO (escalonado)
+//  DESTINO DE CADA PIEZA EN EL EXPLOSIONADO
 //  s     = posición final del centro de la pieza a lo largo del motor, en fracción del largo total.
 //          0 = centro del motor, negativo = lado inyector, positivo = lado tobera.
 //          (el signo se calcula con la geometría real, no depende del eje del modelo)
-//  alt   = altura final, en fracción del largo total (negativo = abajo, positivo = arriba)
+//  alt   = altura final, en fracción del largo total (0 = a la altura del motor, positivo = arriba)
 //  orden = cuándo sale al mover el slider (0 = primero ... 5 = último)
 //  fijo  = la pieza no se mueve (ancla)
-//  Más separación: aleja los valores de s entre piezas vecinas. Más peldaño: aumenta la diferencia de alt.
+//
+//  - Las piezas de los extremos (inyector y tobera) salen en LÍNEA a lo largo del motor (alt: 0).
+//  - Fenólico y Grano suben en escalera.
+//  Más separación: aleja los valores de s entre piezas vecinas.
 // ============================================================
 const DESTINO = {
-  bridainjector: { s: -1.35, alt: -0.30, orden: 4 },
-  injector:      { s: -1.10, alt: -0.22, orden: 3 },
-  injectorcase:  { s: -0.85, alt: -0.14, orden: 2 },
-  precc:         { s: -0.60, alt: -0.06, orden: 1 },
+  // Lado inyector (en línea)
+  bridainjector: { s: -1.35, alt: 0, orden: 4 },
+  injector:      { s: -1.10, alt: 0, orden: 3 },
+  injectorcase:  { s: -0.85, alt: 0, orden: 2 },
+  precc:         { s: -0.60, alt: 0, orden: 1 },
+  // Centro
   casing:        { fijo: true, orden: 0 },
-  fenolico:      { s:  0.02, alt:  0.22, orden: 1 },
-  grano:         { s:  0.22, alt:  0.44, orden: 2 },
-  injerto:       { s:  0.80, alt:  0.58, orden: 3 },
-  tobera:        { s:  1.05, alt:  0.72, orden: 4 },
-  bridatobera:   { s:  1.30, alt:  0.86, orden: 5 }
+  fenolico:      { s:  0.02, alt: 0.22, orden: 1 },   // sube
+  grano:         { s:  0.22, alt: 0.44, orden: 2 },   // sube más
+  // Lado tobera (en línea)
+  injerto:       { s:  0.80, alt: 0, orden: 3 },
+  tobera:        { s:  1.05, alt: 0, orden: 4 },
+  bridatobera:   { s:  1.30, alt: 0, orden: 5 }
 };
-const ESCALON = 0.07;   // retraso entre peldaños al animar (0 = todas a la vez)
+const ESCALON = 0.07;      // retraso entre peldaños al animar (0 = todas a la vez)
 const MAX_ORDEN = 5;
-const LARGO_LLAMA = 2.2; // qué tan lejos llega el fuego desde la tobera
+const LARGO_LLAMA = 2.2;   // qué tan lejos llega el fuego desde la tobera
+const SUBE_CAMARA = 0.16;  // cuánto sube la cámara al explosionar (para que quepa todo)
 
 const AL = { material: 'Aluminio 6061-T6', tempMax: 'Pérdida de resistencia > 150 °C / Fusión 660 °C' };
 const FEN = { material: 'Aislante Fenólico HR', tempMax: 'Carbonizado protector 350 - 850 °C' };
@@ -328,6 +347,16 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.localClippingEnabled = true;
+
+// Marca de agua detrás del motor
+const marca = document.createElement('div');
+marca.id = 'marca';
+if (CONFIG.fondoImagen) {
+  marca.style.backgroundImage = 'url("' + CONFIG.fondoImagen + '")';
+  marca.style.backgroundSize = CONFIG.fondoTamano;
+  marca.style.opacity = String(CONFIG.fondoOpacidad);
+}
+stage.appendChild(marca);
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -480,10 +509,10 @@ function iniciar(gltf) {
   // Los gases salen hacia el lado de la tobera, alejándose del motor
   direccionSalida.copy(dirEje);
 
-  // Corrección de cámara para que el explosionado escalonado (que sube) quede centrado
+  // Corrección de cámara para que el explosionado quede centrado
   const desplCam = new THREE.Vector3();
 
-  // EXPLOSIONADO ESCALONADO
+  // EXPLOSIONADO
   partes.forEach((pt, i) => {
     const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
     let hex = '#9AAAB6';
@@ -521,8 +550,8 @@ function iniciar(gltf) {
 
   aplicarExplosion = () => {
     partes.forEach(pt => pt.obj.position.copy(pt.base).addScaledVector(pt.desplazamiento, tParte(pt)));
-    // La cámara sube con la escalera para que todo siga en pantalla
-    const nuevo = arriba.clone().multiplyScalar(0.28 * L * t);
+    // La cámara sube un poco para que todo siga en pantalla
+    const nuevo = arriba.clone().multiplyScalar(SUBE_CAMARA * L * t);
     const delta = nuevo.clone().sub(desplCam);
     controls.target.add(delta);
     camera.position.add(delta);
@@ -545,7 +574,7 @@ function iniciar(gltf) {
     const dist = L * (window.innerWidth < 600 ? 2.0 : 1.5);
     distMinCamara = dist * 0.25;
     distMaxCamara = dist * 3.4;   // margen para alejarse cuando está explosionado
-    desplCam.copy(arriba).multiplyScalar(0.28 * L * t);
+    desplCam.copy(arriba).multiplyScalar(SUBE_CAMARA * L * t);
     camera.position.copy(centroGeneral).addScaledVector(vista, dist).add(desplCam);
     controls.target.copy(centroGeneral).add(desplCam);
     controls.minDistance = distMinCamara;
