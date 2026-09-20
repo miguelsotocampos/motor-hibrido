@@ -39,8 +39,12 @@
 
   /* MARCA DE AGUA (detrás del motor) */
   #marca {
-    position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    background-repeat: no-repeat; background-position: center;
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url('fondo.png'); /* <-- CAMBIA 'fondo.png' POR EL NOMBRE DE TU LOGO */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 40%;              /* Ajusta el tamaño (ej: 30%, 40%, 300px, etc.) */
+    opacity: 0.12;                       /* Opacidad tenue tipo marca de agua */
   }
 
   /* ENCABEZADO */
@@ -206,50 +210,30 @@ const CONFIG = {
   colorear: true,
   rotacionAutomatica: true,
   aMilimetros: 1000,
-  // false = misma vista inicial de siempre.
-  // true  = la cámara se coloca de modo que el inyector quede a la izquierda y la tobera a la derecha
-  //         (mueve la cámara, no el modelo; el fuego saldrá hacia la derecha).
   inyectorALaIzquierda: false,
 
   // MARCA DE AGUA DE FONDO
-  // Pon la imagen en la misma carpeta que este HTML. Si no existe, simplemente no se muestra.
   fondoImagen: 'fondo.png',
-  fondoOpacidad: 0.08,     // 0 = invisible, 1 = totalmente visible (0.05 - 0.2 es lo normal)
-  fondoTamano: '45%'       // tamaño de la imagen (también sirve 'contain', '600px', etc.)
+  fondoOpacidad: 0.08,
+  fondoTamano: '45%'
 };
 
-// ============================================================
-//  DESTINO DE CADA PIEZA EN EL EXPLOSIONADO
-//  s     = posición final del centro de la pieza a lo largo del motor, en fracción del largo total.
-//          0 = centro del motor, negativo = lado inyector, positivo = lado tobera.
-//          (el signo se calcula con la geometría real, no depende del eje del modelo)
-//  alt   = altura final, en fracción del largo total (0 = a la altura del motor, positivo = arriba)
-//  orden = cuándo sale al mover el slider (0 = primero ... 5 = último)
-//  fijo  = la pieza no se mueve (ancla)
-//
-//  - Las piezas de los extremos (inyector y tobera) salen en LÍNEA a lo largo del motor (alt: 0).
-//  - Fenólico y Grano suben en escalera.
-//  Más separación: aleja los valores de s entre piezas vecinas.
-// ============================================================
 const DESTINO = {
-  // Lado inyector (en línea)
   bridainjector: { s: -1.35, alt: 0, orden: 4 },
   injector:      { s: -1.10, alt: 0, orden: 3 },
   injectorcase:  { s: -0.85, alt: 0, orden: 2 },
-  precc:         { s: -0.60, alt: 0, orden: 1 },
-  // Centro
+  precc:          { s: -0.60, alt: 0, orden: 1 },
   casing:        { fijo: true, orden: 0 },
-  fenolico:      { s:  0.02, alt: 0.22, orden: 1 },   // sube
-  grano:         { s:  0.22, alt: 0.44, orden: 2 },   // sube más
-  // Lado tobera (en línea)
+  fenolico:      { s:  0.02, alt: 0.22, orden: 1 },
+  grano:         { s:  0.22, alt: 0.44, orden: 2 },
   injerto:       { s:  0.80, alt: 0, orden: 3 },
   tobera:        { s:  1.05, alt: 0, orden: 4 },
   bridatobera:   { s:  1.30, alt: 0, orden: 5 }
 };
-const ESCALON = 0.07;      // retraso entre peldaños al animar (0 = todas a la vez)
+const ESCALON = 0.07;
 const MAX_ORDEN = 5;
-const LARGO_LLAMA = 2.2;   // qué tan lejos llega el fuego desde la tobera
-const SUBE_CAMARA = 0.16;  // cuánto sube la cámara al explosionar (para que quepa todo)
+const LARGO_LLAMA = 2.2;
+const SUBE_CAMARA = 0.16;
 
 const AL = { material: 'Aluminio 6061-T6', tempMax: 'Pérdida de resistencia > 150 °C / Fusión 660 °C' };
 const FEN = { material: 'Aislante Fenólico HR', tempMax: 'Carbonizado protector 350 - 850 °C' };
@@ -320,8 +304,6 @@ const PIEZAS = {
 const $ = s => document.querySelector(s);
 const clave = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-// Reconoce la pieza por PARTES del nombre, así funciona con los nombres de SolidWorks
-// (Nozzle_flange_3…, INJECTOR_5step…, Phenolicstep-1…) y con los renombrados (Brida Tobera, Fenolico…)
 function idPieza(nombre) {
   const c = clave(nombre);
   const brida = c.includes('flange') || c.includes('brida');
@@ -348,7 +330,6 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.localClippingEnabled = true;
 
-// Marca de agua detrás del motor
 const marca = document.createElement('div');
 marca.id = 'marca';
 if (CONFIG.fondoImagen) {
@@ -394,7 +375,6 @@ let direccionSalida = new THREE.Vector3();
 let piezaFuego = null;
 const origenFuego = new THREE.Vector3();
 
-// Progreso de cada pieza: las cercanas al casing salen primero, las de los extremos al final
 const suave = x => x * x * (3 - 2 * x);
 const tParte = pt => suave(Math.min(1, Math.max(0, (t - pt.orden * ESCALON) / (1 - MAX_ORDEN * ESCALON))));
 
@@ -450,7 +430,6 @@ function iniciar(gltf) {
   const eje = CONFIG.ejeMotor === 'auto' ? ejes.reduce((a, b) => (tam[b] > tam[a] ? b : a)) : CONFIG.ejeMotor;
   const otros = ejes.filter(e => e !== eje);
   const L = tam[eje];
-  // "Arriba" para los peldaños (si el motor está vertical se usa Z para no chocar con el eje)
   const arriba = eje === 'y' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
 
   const normalLateral = new THREE.Vector3(1, 0, 0).applyQuaternion(modelo.quaternion).normalize();
@@ -483,36 +462,25 @@ function iniciar(gltf) {
     return pt;
   });
 
-  // Ayuda para depurar: qué pieza reconoció cada nombre del GLB (abre la consola con F12)
-  console.table(partes.map(p => ({ nombre: p.obj.name, reconocida_como: p.id || '(no reconocida)' })));
-
-  // Dirección real inyector -> tobera sobre el eje del motor (no depende del signo del eje del modelo)
   const centroDe = id => { const p = partes.find(x => x.id === id); return p ? p.centroPieza : null; };
   const cInj = centroDe('injector') || centroDe('injectorcase') || centroDe('bridainjector');
   const cTob = centroDe('tobera') || centroDe('bridatobera');
   const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
   if (cInj && cTob) {
     if (cTob[eje] < cInj[eje]) dirEje[eje] = -1;
-  } else {
-    console.warn('No se encontró inyector y/o tobera por nombre; se asume que la tobera está en el lado +' + eje + '.');
   }
 
-  // Pieza de la que sale el fuego: la brida de la tobera (extremo) o la tobera
   piezaFuego = partes.find(p => p.id === 'bridatobera') || partes.find(p => p.id === 'tobera');
   if (!piezaFuego) {
-    console.warn('No se encontró la tobera por nombre; el fuego usa la pieza más cercana al lado tobera.');
     piezaFuego = partes.reduce((a, b) => (b.centroPieza.clone().sub(centroGeneral).dot(dirEje) > a.centroPieza.clone().sub(centroGeneral).dot(dirEje) ? b : a));
   }
   const cajaFuego = new THREE.Box3().setFromObject(piezaFuego.obj);
   cajaFuego.getCenter(extremoTobera);
   extremoTobera.addScaledVector(dirEje, cajaFuego.getSize(new THREE.Vector3())[eje] / 2);
-  // Los gases salen hacia el lado de la tobera, alejándose del motor
   direccionSalida.copy(dirEje);
 
-  // Corrección de cámara para que el explosionado quede centrado
   const desplCam = new THREE.Vector3();
 
-  // EXPLOSIONADO
   partes.forEach((pt, i) => {
     const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
     let hex = '#9AAAB6';
@@ -532,7 +500,6 @@ function iniciar(gltf) {
       pt.orden = d.orden;
       if (!d.fijo) { dS = d.s - relS; dAlt = d.alt - relAlt; }
     } else {
-      // Pieza no reconocida: se separa proporcionalmente a su posición
       pt.orden = 0;
       dS = relS * CONFIG.expansion;
     }
@@ -550,7 +517,6 @@ function iniciar(gltf) {
 
   aplicarExplosion = () => {
     partes.forEach(pt => pt.obj.position.copy(pt.base).addScaledVector(pt.desplazamiento, tParte(pt)));
-    // La cámara sube un poco para que todo siga en pantalla
     const nuevo = arriba.clone().multiplyScalar(SUBE_CAMARA * L * t);
     const delta = nuevo.clone().sub(desplCam);
     controls.target.add(delta);
@@ -562,10 +528,8 @@ function iniciar(gltf) {
   luz.position.set(1, 2, 1.5).multiplyScalar(Math.max(L, 0.1));
   scene.add(luz);
 
-  // Vista inicial original
   let vista = (eje === 'z' ? new THREE.Vector3(1, 0.3, 0.25) : new THREE.Vector3(0.25, 0.3, 1)).normalize();
   if (CONFIG.inyectorALaIzquierda) {
-    // Cámara del lado desde el que la tobera queda a la derecha de la pantalla
     const lado = new THREE.Vector3().crossVectors(dirEje, arriba).normalize();
     vista = lado.addScaledVector(arriba, 0.3).addScaledVector(dirEje, 0.25).normalize();
   }
@@ -573,7 +537,7 @@ function iniciar(gltf) {
   encuadrar = () => {
     const dist = L * (window.innerWidth < 600 ? 2.0 : 1.5);
     distMinCamara = dist * 0.25;
-    distMaxCamara = dist * 3.4;   // margen para alejarse cuando está explosionado
+    distMaxCamara = dist * 3.4;
     desplCam.copy(arriba).multiplyScalar(SUBE_CAMARA * L * t);
     camera.position.copy(centroGeneral).addScaledVector(vista, dist).add(desplCam);
     controls.target.copy(centroGeneral).add(desplCam);
@@ -715,7 +679,6 @@ renderer.setAnimationLoop(() => {
   if (Math.abs(objetivoT - t) > 0.0005) { t += (objetivoT - t) * Math.min(1, dt * 7); aplicarExplosion(); }
 
   if (fuegoActivo && piezaFuego) {
-    // El fuego sale de la tobera (también cuando está explosionada)
     origenFuego.copy(extremoTobera).addScaledVector(piezaFuego.mundo, tParte(piezaFuego));
 
     const pos = geoParticulas.attributes.position.array;
