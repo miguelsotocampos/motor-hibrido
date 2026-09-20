@@ -190,6 +190,19 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
+const CONFIG = {
+  modelo: 'motor.glb',
+  titulo: 'Motor híbrido',
+  ensamble: 'Ensamble macho',
+  ignorar: ['Cube'],
+  ejeMotor: 'auto',
+  expansion: 1.2,
+  colorear: true,
+  rotacionAutomatica: true,
+  aMilimetros: 1000,
+  inyectorALaIzquierda: true
+};
+
 const ALIAS = {
   bridainjector: ['bridainjector', 'bridainyector', 'injectorflange'],
   injector:      ['injector', 'inyector'],
@@ -202,6 +215,22 @@ const ALIAS = {
   tobera:        ['tobera', 'nozzle'],
   bridatobera:   ['bridatobera', 'casingnozzle', 'nozzleflange']
 };
+
+/* EXPLOSIONADO LINEAL ESTRICTO (sin desplazamiento vertical) */
+const EXPLOSION = {
+  bridainjector: { ax: -0.65, up: 0, orden: 4 },
+  injector:      { ax: -0.48, up: 0, orden: 3 },
+  injectorcase:  { ax: -0.32, up: 0, orden: 2 },
+  precc:          { ax: -0.18, up: 0, orden: 1 },
+  casing:        { ax:  0.00, up: 0, orden: 0 },
+  fenolico:      { ax:  0.15, up: 0, orden: 1 },
+  grano:         { ax:  0.28, up: 0, orden: 2 },
+  injerto:       { ax:  0.42, up: 0, orden: 3 },
+  tobera:        { ax:  0.58, up: 0, orden: 4 },
+  bridatobera:   { ax:  0.72, up: 0, orden: 5 }
+};
+const ESCALON = 0.07;
+const MAX_ORDEN = 5;
 
 const AL = { material: 'Aluminio 6061-T6', tempMax: 'Pérdida de resistencia > 150 °C / Fusión 660 °C' };
 const FEN = { material: 'Aislante Fenólico HR', tempMax: 'Carbonizado protector 350 - 850 °C' };
@@ -309,16 +338,20 @@ ajustarTamano();
 
 let partes = [];
 let actual = null;
-let factorExplosion = 0;
-let objetivoFactor = 0;
-let girarAuto = true;
+let t = 0, objetivoT = 0;
+let girarAuto = CONFIG.rotacionAutomatica;
 let encuadrar = () => {};
+let aplicarExplosion = () => {};
 let centroGeneral = new THREE.Vector3();
 let distMinCamara = 0.5, distMaxCamara = 10;
 let extremoTobera = new THREE.Vector3();
-let direccionSalida = new THREE.Vector3(1, 0, 0);
+let direccionSalida = new THREE.Vector3();
+let piezaTobera = null;
+const origenFuego = new THREE.Vector3();
 
-/* SISTEMA DE FUEGO Y PARTÍCULAS */
+const suave = x => x * x * (3 - 2 * x);
+const tParte = pt => suave(Math.min(1, Math.max(0, (t - pt.orden * ESCALON) / (1 - MAX_ORDEN * ESCALON))));
+
 const cantParticulas = 350;
 const geoParticulas = new THREE.BufferGeometry();
 const posParticulas = new Float32Array(cantParticulas * 3);
@@ -331,119 +364,157 @@ for (let i = 0; i < cantParticulas; i++) {
 geoParticulas.setAttribute('position', new THREE.BufferAttribute(posParticulas, 3));
 
 const matParticulas = new THREE.PointsMaterial({
-  color: 0xff4500, size: 0.08, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending
+  color: 0xff4500, size: 0.09, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending
 });
 const fuegoMesh = new THREE.Points(geoParticulas, matParticulas);
 fuegoMesh.visible = false;
 scene.add(fuegoMesh);
 let fuegoActivo = false;
 
-new GLTFLoader().load('motor.glb', gltf => {
-  try { iniciar(gltf); $('#estado').classList.add('oculto'); }
-  catch (e) { console.error(e); }
-});
+new GLTFLoader().load(
+  CONFIG.modelo,
+  gltf => {
+    try { iniciar(gltf); $('#estado').classList.add('oculto'); }
+    catch (e) { console.error(e); }
+  }
+);
+
+function orientarMotor(modelo) {
+  modelo.updateMatrixWorld(true);
+  let inj = null, tob = null;
+  modelo.traverse(o => {
+    if (!o.isMesh) return;
+    const id = idPieza(o.name);
+    if (id === 'injector') inj = o;
+    if (id === 'tobera') tob = o;
+  });
+  if (!inj || !tob) {
+    return;
+  }
+  const a = new THREE.Box3().setFromObject(inj).getCenter(new THREE.Vector3());
+  const b = new THREE.Box3().setFromObject(tob).getCenter(new THREE.Vector3());
+  const d = b.sub(a);
+  const eje = ['x', 'y', 'z'].reduce((m, k) => (Math.abs(d[k]) > Math.abs(d[m]) ? k : m), 'x');
+  const actualDir = new THREE.Vector3();
+  actualDir[eje] = Math.sign(d[eje]) || 1;
+  modelo.quaternion.setFromUnitVectors(actualDir, new THREE.Vector3(1, 0, 0));
+  modelo.updateMatrixWorld(true);
+}
 
 function iniciar(gltf) {
   const modelo = gltf.scene;
+  const ignorar = CONFIG.ignorar.map(clave);
+  const quitar = [];
+  modelo.traverse(o => { if (o.isCamera || o.isLight || (o !== modelo && ignorar.includes(clave(o.name)))) quitar.push(o); });
+  quitar.forEach(o => o.parent && o.parent.remove(o));
 
-  // Orientar y centrar el modelo globalmente en (0,0,0)
-  const cajaInicial = new THREE.Box3().setFromObject(modelo);
-  const centroInicial = cajaInicial.getCenter(new THREE.Vector3());
-  modelo.position.sub(centroInicial);
+  if (CONFIG.inyectorALaIzquierda) orientarMotor(modelo);
+
+  const caja = new THREE.Box3().setFromObject(modelo);
+  const centro = caja.getCenter(new THREE.Vector3());
+  modelo.position.sub(centro);
+  
   scene.add(modelo);
   modelo.updateMatrixWorld(true);
 
-  // Recalcular caja delimitadora limpia
-  const caja = new THREE.Box3().setFromObject(modelo);
+  caja.setFromObject(modelo);
   caja.getCenter(centroGeneral);
+
+  let objs = [];
+  modelo.traverse(o => { if (o.isMesh) objs.push(o); });
+
   const tam = caja.getSize(new THREE.Vector3());
-  const largoL = tam.x; // El eje longitudinal es X
+  const ejes = ['x', 'y', 'z'];
+  const eje = CONFIG.ejeMotor === 'auto' ? ejes.reduce((a, b) => (tam[b] > tam[a] ? b : a)) : CONFIG.ejeMotor;
+  const otros = ejes.filter(e => e !== eje);
+  const L = tam[eje];
+  const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
 
-  // Plano de corte para rebanar el tubo de frente a lo largo
-  planoCorte.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, -1), centroGeneral);
+  /* CORTE TRANSVERSAL LONGITUDINAL EXACTO EN EL EJE DE LAS Y */
+  planoCorte.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), centroGeneral);
 
-  let meshes = [];
-  modelo.traverse(o => { if (o.isMesh) meshes.push(o); });
-
-  // Mapear partes y obtener sus posiciones base exactas
-  partes = meshes.map(obj => {
-    const pt = { obj };
+  partes = objs.map(obj => {
+    const pt = { obj, meshes: [obj], mats: [] };
     pt.clave = clave(obj.name);
     pt.id = idPieza(obj.name);
     pt.info = pt.id ? PIEZAS[pt.id] : null;
     pt.titulo = (pt.info && pt.info.titulo) || obj.name;
 
-    // Clonar materiales para manipulación de opacidad/corte individual
-    obj.material = Array.isArray(obj.material) ? obj.material.map(m => m.clone()) : obj.material.clone();
-    pt.mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-    pt.mats.forEach(m => { m.side = THREE.DoubleSide; });
-    obj.userData.parte = pt;
+    const m = obj;
+    m.material = Array.isArray(m.material) ? m.material.map(x => x.clone()) : m.material.clone();
+    (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => { 
+      x.side = THREE.DoubleSide; 
+      pt.mats.push(x); 
+    });
+    m.userData.parte = pt;
 
-    // Posición inicial relativa al padre
-    pt.posBase = obj.position.clone();
+    const cajaP = new THREE.Box3().setFromObject(obj);
+    const c = cajaP.getCenter(new THREE.Vector3());
+    pt.centroPieza = c.clone();
+    pt.rel = L > 0 ? c[eje] / L : 0;
 
-    // Obtener centro en espacio del mundo para calcular el desplazamiento de la explosión
-    const cajaMesh = new THREE.Box3().setFromObject(obj);
-    const centroWorld = cajaMesh.getCenter(new THREE.Vector3());
-
-    // La distancia al centro determina la dirección del despliegue en X
-    pt.offsetDir = centroWorld.x - centroGeneral.x;
-
-    const s = cajaMesh.getSize(new THREE.Vector3());
-    const largo = Math.round(s.x * 1000);
-    const diam = Math.round(Math.max(s.y, s.z) * 1000);
-    pt.medidasModelo = `Largo ${largo} mm, Diámetro ${diam} mm`;
-
+    const s = cajaP.getSize(new THREE.Vector3());
+    const largo = Math.round(s[eje] * CONFIG.aMilimetros);
+    const diam = Math.round(Math.max(s[otros[0]], s[otros[1]]) * CONFIG.aMilimetros);
+    pt.medidasModelo = 'Largo ' + largo + ' mm, diámetro ' + diam + ' mm';
     return pt;
   });
 
-  // Ordenar de izquierda a derecha según posición X para asignación de colores
-  partes.sort((a, b) => a.offsetDir - b.offsetDir);
+  /* UBICACIÓN EXACTA DEL FUEGO EN LA TOBERA (LADO DERECHO DEL MODELO) */
+  piezaTobera = partes.find(p => p.id === 'tobera' || p.id === 'bridatobera') || partes[partes.length - 1];
+  const cajaTobera = new THREE.Box3().setFromObject(piezaTobera.obj);
+  cajaTobera.getCenter(extremoTobera);
+  extremoTobera.x = Math.abs(extremoTobera.x); // Asegura que se ubique en el extremo derecho (+X)
+  
+  direccionSalida.set(1, 0, 0); // Flujo de escape impulsado a la derecha
 
   partes.forEach((pt, i) => {
-    const color = new THREE.Color().setHSL((i * 0.12) % 1, 0.55, 0.6);
+    const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
     let hex = '#9AAAB6';
     pt.mats.forEach(m => {
-      if (m.color) { m.color.copy(color); hex = '#' + m.color.getHexString(); }
+      if (CONFIG.colorear && m.color) { m.color.copy(color); }
+      if (m.color) hex = '#' + m.color.getHexString();
     });
     pt.hex = hex;
+
+    const ex = EXPLOSION[pt.id] || { ax: pt.rel * CONFIG.expansion, up: 0, orden: 0 };
+    pt.orden = ex.orden;
+
+    const mundo = dirEje.clone().multiplyScalar(ex.ax * L);
+    pt.mundo = mundo.clone();
+
+    const padre = pt.obj.parent;
+    padre.updateWorldMatrix(true, false);
+    const inv = new THREE.Matrix4().copy(padre.matrixWorld).invert();
+    const origen = new THREE.Vector3().applyMatrix4(inv);
+    pt.base = pt.obj.position.clone();
+    pt.desplazamiento = mundo.applyMatrix4(inv).sub(origen);
   });
 
-  // Detectar la tobera para salida de partículas
-  const toberaPt = partes.find(p => p.id === 'tobera' || p.id === 'bridatobera') || partes[partes.length - 1];
-  const cajaTobera = new THREE.Box3().setFromObject(toberaPt.obj);
-  cajaTobera.getCenter(extremoTobera);
-  extremoTobera.x = cajaTobera.max.x;
+  aplicarExplosion = () => {
+    partes.forEach(pt => pt.obj.position.copy(pt.base).addScaledVector(pt.desplazamiento, tParte(pt)));
+  };
 
-  const luz = new THREE.DirectionalLight(0xffffff, 1.4);
-  luz.position.set(2, 3, 2);
+  const luz = new THREE.DirectionalLight(0xffffff, 1.3);
+  luz.position.set(1, 2, 1.5).multiplyScalar(Math.max(L, 0.1));
   scene.add(luz);
 
-  const luzAmbiente = new THREE.AmbientLight(0xffffff, 0.6);
-  scene.add(luzAmbiente);
-
+  const vista = new THREE.Vector3(1, 0, 0).normalize();
+  
   encuadrar = () => {
-    const dist = largoL * (window.innerWidth < 600 ? 2.2 : 1.6);
-    distMinCamara = dist * 0.2;
-    distMaxCamara = dist * 3.5;
-    camera.position.set(centroGeneral.x, centroGeneral.y, centroGeneral.z + dist);
+    const dist = L * (window.innerWidth < 600 ? 2.0 : 1.5);
+    distMinCamara = dist * 0.25;
+    distMaxCamara = dist * 3.4;
+    camera.position.copy(centroGeneral).addScaledVector(vista, dist);
     controls.target.copy(centroGeneral);
     controls.minDistance = distMinCamara;
     controls.maxDistance = distMaxCamara;
     controls.update();
-    $('#zoom').value = 50;
+    $('#zoom').value = Math.round(((dist - distMinCamara) / (distMaxCamara - distMinCamara)) * 100);
   };
   encuadrar();
   controls.autoRotate = girarAuto;
   construirLista();
-}
-
-function actualizarExplosion() {
-  partes.forEach(pt => {
-    // Desplazamiento lineal uniforme a lo largo del eje X
-    const desplazamientoX = pt.offsetDir * factorExplosion * 2.2;
-    pt.obj.position.x = pt.posBase.x + desplazamientoX;
-  });
 }
 
 function estadoVisual(pt, modo) {
@@ -453,7 +524,7 @@ function estadoVisual(pt, modo) {
       else { m.emissive.set(0x000000); m.emissiveIntensity = 0; }
     }
     m.transparent = (modo === 'dim');
-    m.opacity = (modo === 'dim') ? 0.25 : 1.0;
+    m.opacity = (modo === 'dim') ? 0.2 : 1.0;
     m.depthWrite = (modo !== 'dim');
   }
 }
@@ -475,12 +546,12 @@ function mostrarFicha(pt) {
 
   const info = pt.info || {};
   $('#p-titulo').textContent = pt.titulo;
-  $('#p-desc').textContent = info.queEs || 'Componente estructural del ensamble del motor.';
+  $('#p-desc').textContent = info.queEs || 'Componente estructural calibrado del ensamble del motor.';
   const filas = [
     ['Material', info.material || 'Aleación de grado aeroespacial'],
-    ['Temperatura límite', info.tempMax || 'Resistencia estándar'],
+    ['Temperatura límite', info.tempMax || 'Resistencia térmica estándar'],
     ['Presión de trabajo', info.presion || 'Nominal de cámara'],
-    ['Medidas', pt.medidasModelo]
+    ['Medidas', info.medidas || pt.medidasModelo]
   ];
   const dl = $('#p-datos');
   dl.replaceChildren();
@@ -512,7 +583,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   const r = renderer.domElement.getBoundingClientRect();
   puntero.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   rayo.setFromCamera(puntero, camera);
-  const golpe = rayo.intersectObjects(partes.map(p => p.obj), false)[0];
+  const golpe = rayo.intersectObjects(partes.flatMap(p => p.meshes), false)[0];
   seleccionar(golpe ? golpe.object.userData.parte : null);
 });
 
@@ -549,7 +620,7 @@ $('#zoom').addEventListener('input', e => {
   camera.position.copy(controls.target).addScaledVector(dir, dist);
 });
 
-$('#explosion').addEventListener('input', e => { objetivoFactor = e.target.value / 100; });
+$('#explosion').addEventListener('input', e => { objetivoT = e.target.value / 100; });
 $('#btn-girar').addEventListener('click', e => {
   girarAuto = !girarAuto;
   e.currentTarget.setAttribute('aria-pressed', String(girarAuto));
@@ -558,7 +629,7 @@ $('#btn-girar').addEventListener('click', e => {
 
 $('#btn-reset').addEventListener('click', () => {
   seleccionar(null);
-  objetivoFactor = 0; $('#explosion').value = 0;
+  objetivoT = 0; $('#explosion').value = 0;
   corteActivo = false;
   fuegoActivo = false;
   fuegoMesh.visible = false;
@@ -571,21 +642,23 @@ $('#btn-reset').addEventListener('click', () => {
 const reloj = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(reloj.getDelta(), 0.05);
-
-  if (Math.abs(objetivoFactor - factorExplosion) > 0.001) {
-    factorExplosion += (objetivoFactor - factorExplosion) * Math.min(1, dt * 8);
-    actualizarExplosion();
-  }
+  if (Math.abs(objetivoT - t) > 0.0005) { t += (objetivoT - t) * Math.min(1, dt * 7); aplicarExplosion(); }
 
   if (fuegoActivo) {
+    origenFuego.copy(extremoTobera);
+    if (piezaTobera) origenFuego.addScaledVector(piezaTobera.mundo, tParte(piezaTobera));
+
     const pos = geoParticulas.attributes.position.array;
     for (let i = 0; i < cantParticulas; i++) {
-      if (velParticulas[i].lengthSq() === 0 || pos[i * 3] > extremoTobera.x + 2.0) {
-        pos[i * 3] = extremoTobera.x;
-        pos[i * 3 + 1] = extremoTobera.y + (Math.random() - 0.5) * 0.05;
-        pos[i * 3 + 2] = extremoTobera.z + (Math.random() - 0.5) * 0.05;
+      if (velParticulas[i].lengthSq() === 0 || pos[i * 3] * direccionSalida.x + pos[i * 3 + 1] * direccionSalida.y + pos[i * 3 + 2] * direccionSalida.z > 2.5) {
+        pos[i * 3] = origenFuego.x + (Math.random() - 0.5) * 0.04;
+        pos[i * 3 + 1] = origenFuego.y + (Math.random() - 0.5) * 0.04;
+        pos[i * 3 + 2] = origenFuego.z + (Math.random() - 0.5) * 0.04;
         
-        velParticulas[i].set(2.0 + Math.random() * 2.0, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2);
+        velParticulas[i].copy(direccionSalida).multiplyScalar(1.8 + Math.random() * 2.2);
+        velParticulas[i].x += (Math.random() - 0.5) * 0.25;
+        velParticulas[i].y += (Math.random() - 0.5) * 0.25;
+        velParticulas[i].z += (Math.random() - 0.5) * 0.25;
       } else {
         pos[i * 3] += velParticulas[i].x * dt;
         pos[i * 3 + 1] += velParticulas[i].y * dt;
