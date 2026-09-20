@@ -8,179 +8,179 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --papel: #E7EEF2;
-    --tinta: #12283A;
-    --tinta-suave: #4A6072;
-    --plano: #1B6F9A;
-    --brasa: #E8590C;
-    --tarjeta: #F8FBFC;
-    --borde: rgba(18, 40, 58, .22);
-  }
-  * { box-sizing: border-box; }
-  html, body {
-    height: 100%; margin: 0; overflow: hidden;
-    background: var(--papel); color: var(--tinta);
-    font-family: 'Barlow', system-ui, -apple-system, sans-serif;
-    -webkit-user-select: none; user-select: none;
-  }
-  button { font: inherit; color: inherit; cursor: pointer; }
+  :root {
+    --papel: #E7EEF2;
+    --tinta: #12283A;
+    --tinta-suave: #4A6072;
+    --plano: #1B6F9A;
+    --brasa: #E8590C;
+    --tarjeta: #F8FBFC;
+    --borde: rgba(18, 40, 58, .22);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%; margin: 0; overflow: hidden;
+    background: var(--papel); color: var(--tinta);
+    font-family: 'Barlow', system-ui, -apple-system, sans-serif;
+    -webkit-user-select: none; user-select: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
 
-  #stage {
-    position: fixed; inset: 0;
-    background-color: var(--papel);
-    background-image:
-      linear-gradient(rgba(18,40,58,.055) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(18,40,58,.055) 1px, transparent 1px);
-    background-size: 32px 32px;
-    touch-action: none;
-  }
-  #stage canvas { display: block; touch-action: none; }
+  #stage {
+    position: fixed; inset: 0;
+    background-color: var(--papel);
+    background-image:
+      linear-gradient(rgba(18,40,58,.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(18,40,58,.055) 1px, transparent 1px);
+    background-size: 32px 32px;
+    touch-action: none;
+  }
+  #stage canvas { display: block; touch-action: none; }
 
-  /* ENCABEZADO */
-  #cabecera { 
-    position: fixed; top: 12px; left: 16px; pointer-events: none; z-index: 2;
-    max-width: calc(100vw - 32px);
-  }
-  #titulo {
-    margin: 0; font-family: 'Barlow Condensed', system-ui, sans-serif;
-    font-weight: 700; font-size: clamp(24px, 5vw, 38px); line-height: 1;
-  }
-  #pista { margin: 4px 0 0; color: var(--tinta-suave); font-size: clamp(12px, 3vw, 16px); }
+  /* ENCABEZADO */
+  #cabecera { 
+    position: fixed; top: 12px; left: 16px; pointer-events: none; z-index: 2;
+    max-width: calc(100vw - 32px);
+  }
+  #titulo {
+    margin: 0; font-family: 'Barlow Condensed', system-ui, sans-serif;
+    font-weight: 700; font-size: clamp(24px, 5vw, 38px); line-height: 1;
+  }
+  #pista { margin: 4px 0 0; color: var(--tinta-suave); font-size: clamp(12px, 3vw, 16px); }
 
-  /* BOTONERA ADAPTATIVA */
-  #acciones { 
-    position: fixed; top: 12px; right: 16px; 
-    display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; z-index: 10;
-    max-width: 60vw;
-  }
-  #acciones button {
-    min-height: 36px; padding: 0 10px; background: var(--tarjeta);
-    border: 1px solid var(--borde); border-radius: 6px; font-size: 13px; font-weight: 500;
-    white-space: nowrap;
-  }
-  #acciones button[aria-pressed="true"] { background: var(--tinta); color: #fff; border-color: var(--tinta); }
-  #btn-fire[aria-pressed="true"] { background: var(--brasa); color: #fff; border-color: var(--brasa); }
+  /* BOTONERA ADAPTATIVA */
+  #acciones { 
+    position: fixed; top: 12px; right: 16px; 
+    display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; z-index: 10;
+    max-width: 60vw;
+  }
+  #acciones button {
+    min-height: 36px; padding: 0 10px; background: var(--tarjeta);
+    border: 1px solid var(--borde); border-radius: 6px; font-size: 13px; font-weight: 500;
+    white-space: nowrap;
+  }
+  #acciones button[aria-pressed="true"] { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+  #btn-fire[aria-pressed="true"] { background: var(--brasa); color: #fff; border-color: var(--brasa); }
 
-  /* LISTA DE PIEZAS */
-  #lista {
-    position: fixed; left: 16px; top: 80px; bottom: 160px; width: 125px;
-    display: flex; flex-direction: column; gap: 4px; overflow-y: auto;
-    padding: 2px; transition: opacity 0.25s, transform 0.25s; z-index: 5;
-  }
-  #lista.oculto-lista { opacity: 0; pointer-events: none; transform: translateX(-20px); }
-  #lista button {
-    display: flex; align-items: center; gap: 6px; text-align: left;
-    min-height: 32px; padding: 4px 8px;
-    background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 6px;
-    font-size: 11px; font-weight: 500;
-  }
-  #lista button .muestra { width: 8px; height: 8px; border-radius: 2px; flex: none; border: 1px solid rgba(18,40,58,.35); }
-  #lista button span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #lista button[aria-pressed="true"] { border-color: var(--brasa); box-shadow: inset 3px 0 0 var(--brasa); font-weight: 600; }
+  /* LISTA DE PIEZAS */
+  #lista {
+    position: fixed; left: 16px; top: 80px; bottom: 160px; width: 125px;
+    display: flex; flex-direction: column; gap: 4px; overflow-y: auto;
+    padding: 2px; transition: opacity 0.25s, transform 0.25s; z-index: 5;
+  }
+  #lista.oculto-lista { opacity: 0; pointer-events: none; transform: translateX(-20px); }
+  #lista button {
+    display: flex; align-items: center; gap: 6px; text-align: left;
+    min-height: 32px; padding: 4px 8px;
+    background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 6px;
+    font-size: 11px; font-weight: 500;
+  }
+  #lista button .muestra { width: 8px; height: 8px; border-radius: 2px; flex: none; border: 1px solid rgba(18,40,58,.35); }
+  #lista button span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #lista button[aria-pressed="true"] { border-color: var(--brasa); box-shadow: inset 3px 0 0 var(--brasa); font-weight: 600; }
 
-  /* FICHA TÉCNICA */
-  #panel {
-    position: fixed; right: 16px; top: 60px; width: min(300px, 85vw); max-height: 50vh;
-    background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
-    padding: 14px; overflow-y: auto; display: none;
-    box-shadow: 0 8px 24px rgba(18,40,58,.15); z-index: 20;
-  }
-  #panel.abierto { display: block; }
-  #panel-header { padding-bottom: 4px; margin-bottom: 4px; border-bottom: 2px solid var(--borde); position: relative; }
-  #panel h2 { margin: 0 28px 0 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; color: var(--brasa); }
-  #cerrar { position: absolute; top: -2px; right: 0; width: 28px; height: 28px; border: 1px solid var(--borde); border-radius: 6px; background: transparent; font-size: 16px; }
-  #p-desc { margin: 6px 0 10px; font-size: 13px; line-height: 1.3; }
-  #p-datos .fila { padding: 4px 0; border-top: 1px solid var(--borde); }
-  #p-datos dt { font-size: 11px; color: var(--tinta-suave); font-weight: 500; }
-  #p-datos dd { margin: 1px 0 0; font-size: 13px; font-weight: 600; }
+  /* FICHA TÉCNICA */
+  #panel {
+    position: fixed; right: 16px; top: 60px; width: min(300px, 85vw); max-height: 50vh;
+    background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
+    padding: 14px; overflow-y: auto; display: none;
+    box-shadow: 0 8px 24px rgba(18,40,58,.15); z-index: 20;
+  }
+  #panel.abierto { display: block; }
+  #panel-header { padding-bottom: 4px; margin-bottom: 4px; border-bottom: 2px solid var(--borde); position: relative; }
+  #panel h2 { margin: 0 28px 0 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; color: var(--brasa); }
+  #cerrar { position: absolute; top: -2px; right: 0; width: 28px; height: 28px; border: 1px solid var(--borde); border-radius: 6px; background: transparent; font-size: 16px; }
+  #p-desc { margin: 6px 0 10px; font-size: 13px; line-height: 1.3; }
+  #p-datos .fila { padding: 4px 0; border-top: 1px solid var(--borde); }
+  #p-datos dt { font-size: 11px; color: var(--tinta-suave); font-weight: 500; }
+  #p-datos dd { margin: 1px 0 0; font-size: 13px; font-weight: 600; }
 
-  /* CONTROLES INFERIORES */
-  #controles-contenedor {
-    position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%);
-    width: min(520px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; z-index: 10;
-  }
-  .bloque-control { padding: 6px 14px 8px; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px; }
-  .bloque-control label { display: block; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; }
-  .bloque-control .fila { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tinta-suave); }
-  .bloque-control input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 28px; background: transparent; margin: 0; }
-  #explosion::-webkit-slider-runnable-track, #zoom::-webkit-slider-runnable-track { height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--plano), var(--brasa)); }
-  #explosion::-webkit-slider-thumb, #zoom::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8.5px; border-radius: 50%; background: #fff; border: 3px solid var(--tinta); }
+  /* CONTROLES INFERIORES */
+  #controles-contenedor {
+    position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%);
+    width: min(520px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; z-index: 10;
+  }
+  .bloque-control { padding: 6px 14px 8px; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px; }
+  .bloque-control label { display: block; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; }
+  .bloque-control .fila { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tinta-suave); }
+  .bloque-control input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 28px; background: transparent; margin: 0; }
+  #explosion::-webkit-slider-runnable-track, #zoom::-webkit-slider-runnable-track { height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--plano), var(--brasa)); }
+  #explosion::-webkit-slider-thumb, #zoom::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8.5px; border-radius: 50%; background: #fff; border: 3px solid var(--tinta); }
 
-  #estado { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(231,238,242,.92); z-index: 100; }
-  #estado.oculto { display: none; }
+  #estado { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(231,238,242,.92); z-index: 100; }
+  #estado.oculto { display: none; }
 
-  @media (max-width: 600px) {
-    #acciones { 
-      position: fixed; top: auto; bottom: 135px; left: 12px; right: 12px;
-      max-width: 100vw; justify-content: center; gap: 4px;
-    }
-    #acciones button { padding: 0 8px; font-size: 11px; min-height: 32px; flex: 1; text-align: center; }
-    #cabecera { top: 8px; left: 12px; }
-    #lista { top: 55px; bottom: 175px; left: 12px; width: 110px; }
-    #panel { top: 55px; right: 12px; width: calc(100vw - 24px); max-height: 40vh; }
-    #controles-contenedor { bottom: 8px; gap: 4px; }
-    .bloque-control { padding: 4px 10px 6px; }
-    .bloque-control label { font-size: 13px; }
-    .bloque-control .fila { font-size: 11px; }
-  }
+  @media (max-width: 600px) {
+    #acciones { 
+      position: fixed; top: auto; bottom: 135px; left: 12px; right: 12px;
+      max-width: 100vw; justify-content: center; gap: 4px;
+    }
+    #acciones button { padding: 0 8px; font-size: 11px; min-height: 32px; flex: 1; text-align: center; }
+    #cabecera { top: 8px; left: 12px; }
+    #lista { top: 55px; bottom: 175px; left: 12px; width: 110px; }
+    #panel { top: 55px; right: 12px; width: calc(100vw - 24px); max-height: 40vh; }
+    #controles-contenedor { bottom: 8px; gap: 4px; }
+    .bloque-control { padding: 4px 10px 6px; }
+    .bloque-control label { font-size: 13px; }
+    .bloque-control .fila { font-size: 11px; }
+  }
 </style>
 </head>
 <body>
 <div id="stage"></div>
 
 <header id="cabecera">
-  <h1 id="titulo">Motor híbrido</h1>
-  <p id="pista">Toca una pieza para conocerla</p>
+  <h1 id="titulo">Motor híbrido</h1>
+  <p id="pista">Toca una pieza para conocerla</p>
 </header>
 
 <nav id="lista" aria-label="Piezas del motor"></nav>
 
 <div id="acciones">
-  <button id="btn-fire" type="button" aria-pressed="false">🔥 Fire Test</button>
-  <button id="btn-toggle-lista" type="button" aria-pressed="true">👁️ Piezas</button>
-  <button id="btn-corte" type="button" aria-pressed="false">Corte Transversal</button>
-  <button id="btn-girar" type="button" aria-pressed="true">Girar solo</button>
-  <button id="btn-reset" type="button">Reiniciar</button>
+  <button id="btn-fire" type="button" aria-pressed="false">🔥 Fire Test</button>
+  <button id="btn-toggle-lista" type="button" aria-pressed="true">👁️ Piezas</button>
+  <button id="btn-corte" type="button" aria-pressed="false">Corte Transversal</button>
+  <button id="btn-girar" type="button" aria-pressed="true">Girar solo</button>
+  <button id="btn-reset" type="button">Reiniciar</button>
 </div>
 
 <aside id="panel" aria-live="polite">
-  <div id="panel-header">
-    <button id="cerrar" type="button">&times;</button>
-    <h2 id="p-titulo"></h2>
-  </div>
-  <p id="p-desc"></p>
-  <dl id="p-datos"></dl>
+  <div id="panel-header">
+    <button id="cerrar" type="button">&times;</button>
+    <h2 id="p-titulo"></h2>
+  </div>
+  <p id="p-desc"></p>
+  <dl id="p-datos"></dl>
 </aside>
 
 <div id="controles-contenedor">
-  <div class="bloque-control">
-    <label for="explosion">Explosionar</label>
-    <div class="fila">
-      <span>Armado</span>
-      <input id="explosion" type="range" min="0" max="100" value="0">
-      <span>Explosionado</span>
-    </div>
-  </div>
+  <div class="bloque-control">
+    <label for="explosion">Explosionar</label>
+    <div class="fila">
+      <span>Armado</span>
+      <input id="explosion" type="range" min="0" max="100" value="0">
+      <span>Explosionado</span>
+    </div>
+  </div>
 
-  <div class="bloque-control">
-    <label for="zoom">Zoom (Acercar/Alejar)</label>
-    <div class="fila">
-      <span>Cerca</span>
-      <input id="zoom" type="range" min="0" max="100" value="50">
-      <span>Lejos</span>
-    </div>
-  </div>
+  <div class="bloque-control">
+    <label for="zoom">Zoom (Acercar/Alejar)</label>
+    <div class="fila">
+      <span>Cerca</span>
+      <input id="zoom" type="range" min="0" max="100" value="50">
+      <span>Lejos</span>
+    </div>
+  </div>
 </div>
 
 <div id="estado">Cargando modelo…</div>
 
 <script type="importmap">
 {
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-  }
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
 }
 </script>
 
@@ -191,120 +191,133 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const CONFIG = {
-  modelo: 'motor.glb',
-  titulo: 'Motor híbrido',
-  ensamble: 'Ensamble macho',
-  ignorar: ['Cube'],
-  ejeMotor: 'auto',
-  expansion: 1.2,
-  colorear: true,
-  rotacionAutomatica: true,
-  aMilimetros: 1000,
-  inyectorALaIzquierda: true
+  modelo: 'motor.glb',
+  titulo: 'Motor híbrido',
+  ensamble: 'Ensamble macho',
+  ignorar: ['Cube'],
+  ejeMotor: 'auto',
+  expansion: 1.2,
+  colorear: true,
+  rotacionAutomatica: true,
+  aMilimetros: 1000,
+  // true = gira el modelo para que quede horizontal: inyector a la izquierda, tobera a la derecha
+  inyectorALaIzquierda: true
 };
 
+// ============================================================
+//  IDENTIFICACIÓN DE PIEZAS (por nombre exacto, sin acentos ni símbolos)
+//  clave('Pre-CC') = 'precc', clave('Brida Injector') = 'bridainjector'
+// ============================================================
 const ALIAS = {
-  bridainjector: ['bridainjector', 'bridainyector', 'injectorflange'],
-  injector:      ['injector', 'inyector'],
-  injectorcase:  ['injectorcase', 'inyectorcase'],
-  precc:          ['precc'],
-  casing:        ['casing'],
-  fenolico:      ['fenolico', 'phenolics', 'liner'],
-  grano:         ['grano', 'grainstep'],
-  injerto:       ['injerto', 'grafito'],
-  tobera:        ['tobera', 'nozzle'],
-  bridatobera:   ['bridatobera', 'casingnozzle', 'nozzleflange']
+  bridainjector: ['bridainjector', 'bridainyector'],
+  injector:      ['injector', 'inyector'],
+  injectorcase:  ['injectorcase', 'inyectorcase'],
+  precc:         ['precc'],
+  casing:        ['casing'],
+  fenolico:      ['fenolico', 'phenolics', 'liner'],
+  grano:         ['grano', 'grainstep'],
+  injerto:       ['injerto', 'grafito'],
+  tobera:        ['tobera', 'nozzle'],
+  bridatobera:   ['bridatobera', 'casingnozzle']
 };
 
-/* EXPLOSIONADO LINEAL ESTRICTO (sin desplazamiento vertical) */
+// ============================================================
+//  EXPLOSIONADO ESCALONADO
+//  ax    = desplazamiento a lo largo del motor, en fracción del largo total
+//          (negativo = lado inyector / izquierda, positivo = lado tobera / derecha)
+//  up    = desplazamiento hacia arriba, en fracción del largo total (negativo = abajo)
+//  orden = en qué momento sale al mover el slider (0 = primero, 5 = último)
+//  Ajusta estos números a tu gusto; el resto del código no cambia.
+// ============================================================
 const EXPLOSION = {
-  bridainjector: { ax: -0.65, up: 0, orden: 4 },
-  injector:      { ax: -0.48, up: 0, orden: 3 },
-  injectorcase:  { ax: -0.32, up: 0, orden: 2 },
-  precc:          { ax: -0.18, up: 0, orden: 1 },
-  casing:        { ax:  0.00, up: 0, orden: 0 },
-  fenolico:      { ax:  0.15, up: 0, orden: 1 },
-  grano:         { ax:  0.28, up: 0, orden: 2 },
-  injerto:       { ax:  0.42, up: 0, orden: 3 },
-  tobera:        { ax:  0.58, up: 0, orden: 4 },
-  bridatobera:   { ax:  0.72, up: 0, orden: 5 }
+  bridainjector: { ax: -0.62, up: -0.40, orden: 4 },
+  injector:      { ax: -0.35, up: -0.22, orden: 3 },
+  injectorcase:  { ax: -0.28, up: -0.15, orden: 2 },
+  precc:         { ax: -0.16, up: -0.10, orden: 1 },
+  casing:        { ax:  0.00, up:  0.00, orden: 0 },   // ancla, no se mueve
+  fenolico:      { ax:  0.18, up:  0.20, orden: 1 },
+  grano:         { ax:  0.20, up:  0.28, orden: 2 },
+  injerto:       { ax:  0.16, up:  0.20, orden: 3 },
+  tobera:        { ax:  0.22, up:  0.40, orden: 4 },
+  bridatobera:   { ax:  0.68, up:  0.52, orden: 5 }
 };
-const ESCALON = 0.07;
+const ESCALON = 0.07;   // retraso entre peldaños al animar (0 = todas a la vez)
 const MAX_ORDEN = 5;
 
 const AL = { material: 'Aluminio 6061-T6', tempMax: 'Pérdida de resistencia > 150 °C / Fusión 660 °C' };
 const FEN = { material: 'Aislante Fenólico HR', tempMax: 'Carbonizado protector 350 - 850 °C' };
 
 const PIEZAS = {
-  grano: {
-    titulo: 'Grano (Combustible)',
-    queEs: 'Bloque de combustible sólido cilíndrico. Posee un puerto central por donde fluye el oxidante para sostener la combustión.',
-    material: 'HDPE (Polietileno)',
-    tempMax: 'Fusión ~130 °C / Combustión > 2800 °C',
-    presion: '35 - 45 bar'
-  },
-  tobera: {
-    ...FEN,
-    titulo: 'Tobera de Escape',
-    queEs: 'Geometría convergente-divergente que acelera los gases de combustión a velocidades supersónicas para generar empuje.',
-    presion: '40 bar'
-  },
-  injerto: {
-    titulo: 'Garganta / Injerto de Grafito',
-    queEs: 'Sección crítica de mínima área (garganta). Resistente a la erosión térmica extrema y choque térmico del flujo de gas.',
-    material: 'Grafito Isostático de alta densidad',
-    tempMax: '> 3000 °C',
-    presion: '45 bar'
-  },
-  casing: {
-    ...AL,
-    titulo: 'Carcasa Principal (Casing)',
-    queEs: 'Cilindro estructural contenedor de alta presión. Protege la cámara de combustión y soporta las cargas aerodinámicas.',
-    presion: '60 bar (Presión de prueba)'
-  },
-  fenolico: {
-    ...FEN,
-    titulo: 'Liner Térmico Fenólico',
-    queEs: 'Camisa aislante que previene la transferencia de calor directo hacia la carcasa de aluminio.'
-  },
-  precc: {
-    ...FEN,
-    titulo: 'Precámara de Combustión',
-    queEs: 'Zona de atomización y mezcla del oxidante líquido antes de entrar en contacto con el grano de combustible.'
-  },
-  injector: {
-    ...AL,
-    titulo: 'Inyector',
-    queEs: 'Elemento distribuidor con orificios calibrados. Por este componente se inyecta el óxido nitroso en estado líquido a la cámara.',
-    presion: '50 - 60 bar'
-  },
-  injectorcase: {
-    ...AL,
-    titulo: 'Carcasa del Inyector',
-    queEs: 'Alojamiento que sostiene el inyector en el extremo de entrada del motor.',
-    presion: 'Estructural'
-  },
-  bridainjector: {
-    ...AL,
-    titulo: 'Brida del Inyector',
-    queEs: 'Brida de aluminio que une el conjunto del inyector con el casing.',
-    presion: 'Estructural'
-  },
-  bridatobera: {
-    ...AL,
-    titulo: 'Brida de la Tobera',
-    queEs: 'Estructura exterior diseñada para sostener, alinear y proteger mecánicamente el ensamble de la tobera.',
-    presion: 'Estructural'
-  }
+  grano: {
+    titulo: 'Grano (Combustible)',
+    queEs: 'Bloque de combustible sólido cilíndrico. Posee un puerto central por donde fluye el oxidante para sostener la combustión.',
+    material: 'HDPE (Polietileno)',
+    tempMax: 'Fusión ~130 °C / Combustión > 2800 °C',
+    presion: '35 - 45 bar'
+  },
+  tobera: {
+    ...FEN,
+    titulo: 'Tobera de Escape',
+    queEs: 'Geometría convergente-divergente que acelera los gases de combustión a velocidades supersónicas para generar empuje.',
+    presion: '40 bar'
+  },
+  injerto: {
+    titulo: 'Garganta / Injerto de Grafito',
+    queEs: 'Sección crítica de mínima área (garganta). Resistente a la erosión térmica extrema y choque térmico del flujo de gas.',
+    material: 'Grafito Isostático de alta densidad',
+    tempMax: '> 3000 °C',
+    presion: '45 bar'
+  },
+  casing: {
+    ...AL,
+    titulo: 'Carcasa Principal (Casing)',
+    queEs: 'Cilindro estructural contenedor de alta presión. Protege la cámara de combustión y soporta las cargas aerodinámicas.',
+    presion: '60 bar (Presión de prueba)'
+  },
+  fenolico: {
+    ...FEN,
+    titulo: 'Liner Térmico Fenólico',
+    queEs: 'Camisa aislante que previene la transferencia de calor directo hacia la carcasa de aluminio.'
+  },
+  precc: {
+    ...FEN,
+    titulo: 'Precámara de Combustión',
+    queEs: 'Zona de atomización y mezcla del oxidante líquido antes de entrar en contacto con el grano de combustible.'
+  },
+  injector: {
+    ...AL,
+    titulo: 'Inyector',
+    queEs: 'Elemento distribuidor con orificios calibrados. Por este componente se inyecta el óxido nitroso en estado líquido a la cámara.',
+    presion: '50 - 60 bar'
+  },
+  injectorcase: {
+    ...AL,
+    titulo: 'Carcasa del Inyector',
+    queEs: 'Alojamiento que sostiene el inyector en el extremo de entrada del motor.',
+    presion: 'Estructural'
+  },
+  bridainjector: {
+    ...AL,
+    titulo: 'Brida del Inyector',
+    queEs: 'Brida de aluminio que une el conjunto del inyector con el casing.',
+    presion: 'Estructural'
+  },
+  bridatobera: {
+    ...AL,
+    titulo: 'Brida de la Tobera',
+    queEs: 'Estructura exterior diseñada para sostener, alinear y proteger mecánicamente el ensamble de la tobera.',
+    presion: 'Estructural'
+  }
 };
 
 const $ = s => document.querySelector(s);
 const clave = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+// Devuelve el id de la pieza ('injector', 'tobera', ...) o null si no se reconoce
 function idPieza(nombre) {
-  const c = clave(nombre).replace(/\d+$/, '');
-  for (const id in ALIAS) if (ALIAS[id].some(alias => c.includes(alias))) return id;
-  return null;
+  const c = clave(nombre).replace(/\d+$/, '');   // quita sufijos tipo .001 / _1
+  for (const id in ALIAS) if (ALIAS[id].includes(c)) return id;
+  return null;
 }
 
 const stage = $('#stage');
@@ -328,10 +341,10 @@ controls.enablePan = false;
 controls.autoRotateSpeed = 0.9;
 
 function ajustarTamano() {
-  const w = stage.clientWidth, h = stage.clientHeight;
-  renderer.setSize(w, h);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
 }
 new ResizeObserver(ajustarTamano).observe(stage);
 ajustarTamano();
@@ -349,6 +362,7 @@ let direccionSalida = new THREE.Vector3();
 let piezaTobera = null;
 const origenFuego = new THREE.Vector3();
 
+// Progreso de cada pieza: las cercanas al casing salen primero, las de los extremos al final
 const suave = x => x * x * (3 - 2 * x);
 const tParte = pt => suave(Math.min(1, Math.max(0, (t - pt.orden * ESCALON) / (1 - MAX_ORDEN * ESCALON))));
 
@@ -358,13 +372,13 @@ const posParticulas = new Float32Array(cantParticulas * 3);
 const velParticulas = [];
 
 for (let i = 0; i < cantParticulas; i++) {
-  posParticulas[i * 3] = 0; posParticulas[i * 3 + 1] = 0; posParticulas[i * 3 + 2] = 0;
-  velParticulas.push(new THREE.Vector3());
+  posParticulas[i * 3] = 0; posParticulas[i * 3 + 1] = 0; posParticulas[i * 3 + 2] = 0;
+  velParticulas.push(new THREE.Vector3());
 }
 geoParticulas.setAttribute('position', new THREE.BufferAttribute(posParticulas, 3));
 
 const matParticulas = new THREE.PointsMaterial({
-  color: 0xff4500, size: 0.09, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending
+  color: 0xff4500, size: 0.09, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending
 });
 const fuegoMesh = new THREE.Points(geoParticulas, matParticulas);
 fuegoMesh.visible = false;
@@ -372,304 +386,311 @@ scene.add(fuegoMesh);
 let fuegoActivo = false;
 
 new GLTFLoader().load(
-  CONFIG.modelo,
-  gltf => {
-    try { iniciar(gltf); $('#estado').classList.add('oculto'); }
-    catch (e) { console.error(e); }
-  }
+  CONFIG.modelo,
+  gltf => {
+    try { iniciar(gltf); $('#estado').classList.add('oculto'); }
+    catch (e) { console.error(e); }
+  }
 );
 
+// Gira el modelo para que el eje del motor quede en X: inyector a la izquierda (-X), tobera a la derecha (+X)
 function orientarMotor(modelo) {
-  modelo.updateMatrixWorld(true);
-  let inj = null, tob = null;
-  modelo.traverse(o => {
-    if (!o.isMesh) return;
-    const id = idPieza(o.name);
-    if (id === 'injector') inj = o;
-    if (id === 'tobera') tob = o;
-  });
-  if (!inj || !tob) {
-    return;
-  }
-  const a = new THREE.Box3().setFromObject(inj).getCenter(new THREE.Vector3());
-  const b = new THREE.Box3().setFromObject(tob).getCenter(new THREE.Vector3());
-  const d = b.sub(a);
-  const eje = ['x', 'y', 'z'].reduce((m, k) => (Math.abs(d[k]) > Math.abs(d[m]) ? k : m), 'x');
-  const actualDir = new THREE.Vector3();
-  actualDir[eje] = Math.sign(d[eje]) || 1;
-  modelo.quaternion.setFromUnitVectors(actualDir, new THREE.Vector3(1, 0, 0));
-  modelo.updateMatrixWorld(true);
+  modelo.updateMatrixWorld(true);
+  let inj = null, tob = null;
+  modelo.traverse(o => {
+    if (!o.isMesh) return;
+    const id = idPieza(o.name);
+    if (id === 'injector') inj = o;
+    if (id === 'tobera') tob = o;
+  });
+  if (!inj || !tob) {
+    console.warn('No se encontró Injector y/o Tobera; el modelo no se reorientó.');
+    return;
+  }
+  const a = new THREE.Box3().setFromObject(inj).getCenter(new THREE.Vector3());
+  const b = new THREE.Box3().setFromObject(tob).getCenter(new THREE.Vector3());
+  const d = b.sub(a);
+  // Se ajusta al eje más cercano para no dejar el motor inclinado
+  const eje = ['x', 'y', 'z'].reduce((m, k) => (Math.abs(d[k]) > Math.abs(d[m]) ? k : m), 'x');
+  const actualDir = new THREE.Vector3();
+  actualDir[eje] = Math.sign(d[eje]) || 1;
+  modelo.quaternion.setFromUnitVectors(actualDir, new THREE.Vector3(1, 0, 0));
+  modelo.updateMatrixWorld(true);
 }
 
 function iniciar(gltf) {
-  const modelo = gltf.scene;
-  const ignorar = CONFIG.ignorar.map(clave);
-  const quitar = [];
-  modelo.traverse(o => { if (o.isCamera || o.isLight || (o !== modelo && ignorar.includes(clave(o.name)))) quitar.push(o); });
-  quitar.forEach(o => o.parent && o.parent.remove(o));
+  const modelo = gltf.scene;
+  const ignorar = CONFIG.ignorar.map(clave);
+  const quitar = [];
+  modelo.traverse(o => { if (o.isCamera || o.isLight || (o !== modelo && ignorar.includes(clave(o.name)))) quitar.push(o); });
+  quitar.forEach(o => o.parent && o.parent.remove(o));
 
-  if (CONFIG.inyectorALaIzquierda) orientarMotor(modelo);
+  if (CONFIG.inyectorALaIzquierda) orientarMotor(modelo);
 
-  const caja = new THREE.Box3().setFromObject(modelo);
-  const centro = caja.getCenter(new THREE.Vector3());
-  modelo.position.sub(centro);
-  
-  scene.add(modelo);
-  modelo.updateMatrixWorld(true);
+  const caja = new THREE.Box3().setFromObject(modelo);
+  const centro = caja.getCenter(new THREE.Vector3());
+  modelo.position.sub(centro);
+  
+  scene.add(modelo);
+  modelo.updateMatrixWorld(true);
 
-  caja.setFromObject(modelo);
-  caja.getCenter(centroGeneral);
+  caja.setFromObject(modelo);
+  caja.getCenter(centroGeneral);
 
-  let objs = [];
-  modelo.traverse(o => { if (o.isMesh) objs.push(o); });
+  let objs = [];
+  modelo.traverse(o => { if (o.isMesh) objs.push(o); });
 
-  const tam = caja.getSize(new THREE.Vector3());
-  const ejes = ['x', 'y', 'z'];
-  const eje = CONFIG.ejeMotor === 'auto' ? ejes.reduce((a, b) => (tam[b] > tam[a] ? b : a)) : CONFIG.ejeMotor;
-  const otros = ejes.filter(e => e !== eje);
-  const L = tam[eje];
-  const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
+  const tam = caja.getSize(new THREE.Vector3());
+  const ejes = ['x', 'y', 'z'];
+  const eje = CONFIG.ejeMotor === 'auto' ? ejes.reduce((a, b) => (tam[b] > tam[a] ? b : a)) : CONFIG.ejeMotor;
+  const otros = ejes.filter(e => e !== eje);
+  const L = tam[eje];
+  const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
+  // "Arriba" para los peldaños (si el motor quedó vertical, se usa Z para no chocar con el eje)
+  const dirArriba = eje === 'y' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
 
-  /* CORTE TRANSVERSAL LONGITUDINAL EXACTO EN EL EJE DE LAS Y */
-  planoCorte.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), centroGeneral);
+  // Plano de corte longitudinal: quita la mitad que da hacia la cámara (+Z) y deja ver el interior
+  planoCorte.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, -1), centroGeneral);
 
-  partes = objs.map(obj => {
-    const pt = { obj, meshes: [obj], mats: [] };
-    pt.clave = clave(obj.name);
-    pt.id = idPieza(obj.name);
-    pt.info = pt.id ? PIEZAS[pt.id] : null;
-    pt.titulo = (pt.info && pt.info.titulo) || obj.name;
+  partes = objs.map(obj => {
+    const pt = { obj, meshes: [obj], mats: [] };
+    pt.clave = clave(obj.name);
+    pt.id = idPieza(obj.name);
+    pt.info = pt.id ? PIEZAS[pt.id] : null;
+    pt.titulo = (pt.info && pt.info.titulo) || obj.name;
 
-    const m = obj;
-    m.material = Array.isArray(m.material) ? m.material.map(x => x.clone()) : m.material.clone();
-    (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => { 
-      x.side = THREE.DoubleSide; 
-      pt.mats.push(x); 
-    });
-    m.userData.parte = pt;
+    const m = obj;
+    m.material = Array.isArray(m.material) ? m.material.map(x => x.clone()) : m.material.clone();
+    (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => { 
+      x.side = THREE.DoubleSide; 
+      pt.mats.push(x); 
+    });
+    m.userData.parte = pt;
 
-    const cajaP = new THREE.Box3().setFromObject(obj);
-    const c = cajaP.getCenter(new THREE.Vector3());
-    pt.centroPieza = c.clone();
-    pt.rel = L > 0 ? c[eje] / L : 0;
+    const cajaP = new THREE.Box3().setFromObject(obj);
+    const c = cajaP.getCenter(new THREE.Vector3());
+    pt.centroPieza = c.clone();
+    pt.rel = L > 0 ? c[eje] / L : 0;
 
-    const s = cajaP.getSize(new THREE.Vector3());
-    const largo = Math.round(s[eje] * CONFIG.aMilimetros);
-    const diam = Math.round(Math.max(s[otros[0]], s[otros[1]]) * CONFIG.aMilimetros);
-    pt.medidasModelo = 'Largo ' + largo + ' mm, diámetro ' + diam + ' mm';
-    return pt;
-  });
+    const s = cajaP.getSize(new THREE.Vector3());
+    const largo = Math.round(s[eje] * CONFIG.aMilimetros);
+    const diam = Math.round(Math.max(s[otros[0]], s[otros[1]]) * CONFIG.aMilimetros);
+    pt.medidasModelo = 'Largo ' + largo + ' mm, diámetro ' + diam + ' mm';
+    return pt;
+  });
 
-  /* UBICACIÓN EXACTA DEL FUEGO EN LA TOBERA (LADO DERECHO DEL MODELO) */
-  piezaTobera = partes.find(p => p.id === 'tobera' || p.id === 'bridatobera') || partes[partes.length - 1];
-  const cajaTobera = new THREE.Box3().setFromObject(piezaTobera.obj);
-  cajaTobera.getCenter(extremoTobera);
-  extremoTobera.x = Math.abs(extremoTobera.x); // Asegura que se ubique en el extremo derecho (+X)
-  
-  direccionSalida.set(1, 0, 0); // Flujo de escape impulsado a la derecha
+  // Localizar pieza de la tobera (para el Fire Test)
+  piezaTobera = partes.find(p => p.id === 'tobera') || partes[partes.length - 1];
+  const cajaTobera = new THREE.Box3().setFromObject(piezaTobera.obj);
+  cajaTobera.getCenter(extremoTobera);
+  // Los gases salen exactamente a lo largo del eje del motor, hacia el lado de la tobera
+  direccionSalida.copy(dirEje).multiplyScalar(Math.sign(extremoTobera.clone().sub(centroGeneral).dot(dirEje)) || 1);
 
-  partes.forEach((pt, i) => {
-    const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
-    let hex = '#9AAAB6';
-    pt.mats.forEach(m => {
-      if (CONFIG.colorear && m.color) { m.color.copy(color); }
-      if (m.color) hex = '#' + m.color.getHexString();
-    });
-    pt.hex = hex;
+  // EXPLOSIONADO ESCALONADO: cada pieza sale por el eje del motor (inyector -, tobera +) y sube un peldaño
+  partes.forEach((pt, i) => {
+    const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
+    let hex = '#9AAAB6';
+    pt.mats.forEach(m => {
+      if (CONFIG.colorear && m.color) { m.color.copy(color); }
+      if (m.color) hex = '#' + m.color.getHexString();
+    });
+    pt.hex = hex;
 
-    const ex = EXPLOSION[pt.id] || { ax: pt.rel * CONFIG.expansion, up: 0, orden: 0 };
-    pt.orden = ex.orden;
+    // Pieza no reconocida: se separa proporcionalmente a su posición, sin peldaño
+    const ex = EXPLOSION[pt.id] || { ax: pt.rel * CONFIG.expansion, up: 0, orden: 0 };
+    pt.orden = ex.orden;
 
-    const mundo = dirEje.clone().multiplyScalar(ex.ax * L);
-    pt.mundo = mundo.clone();
+    const mundo = dirEje.clone().multiplyScalar(ex.ax * L).addScaledVector(dirArriba, ex.up * L);
+    pt.mundo = mundo.clone();
 
-    const padre = pt.obj.parent;
-    padre.updateWorldMatrix(true, false);
-    const inv = new THREE.Matrix4().copy(padre.matrixWorld).invert();
-    const origen = new THREE.Vector3().applyMatrix4(inv);
-    pt.base = pt.obj.position.clone();
-    pt.desplazamiento = mundo.applyMatrix4(inv).sub(origen);
-  });
+    const padre = pt.obj.parent;
+    padre.updateWorldMatrix(true, false);
+    const inv = new THREE.Matrix4().copy(padre.matrixWorld).invert();
+    const origen = new THREE.Vector3().applyMatrix4(inv);
+    pt.base = pt.obj.position.clone();
+    pt.desplazamiento = mundo.applyMatrix4(inv).sub(origen);
+  });
 
-  aplicarExplosion = () => {
-    partes.forEach(pt => pt.obj.position.copy(pt.base).addScaledVector(pt.desplazamiento, tParte(pt)));
-  };
+  aplicarExplosion = () => {
+    partes.forEach(pt => pt.obj.position.copy(pt.base).addScaledVector(pt.desplazamiento, tParte(pt)));
+  };
 
-  const luz = new THREE.DirectionalLight(0xffffff, 1.3);
-  luz.position.set(1, 2, 1.5).multiplyScalar(Math.max(L, 0.1));
-  scene.add(luz);
+  const luz = new THREE.DirectionalLight(0xffffff, 1.3);
+  luz.position.set(1, 2, 1.5).multiplyScalar(Math.max(L, 0.1));
+  scene.add(luz);
 
-  const vista = new THREE.Vector3(0, 0, 1).normalize();
-  
-  encuadrar = () => {
-    const dist = L * (window.innerWidth < 600 ? 2.0 : 1.5);
-    distMinCamara = dist * 0.25;
-    distMaxCamara = dist * 3.4;
-    camera.position.copy(centroGeneral).addScaledVector(vista, dist);
-    controls.target.copy(centroGeneral);
-    controls.minDistance = distMinCamara;
-    controls.maxDistance = distMaxCamara;
-    controls.update();
-    $('#zoom').value = Math.round(((dist - distMinCamara) / (distMaxCamara - distMinCamara)) * 100);
-  };
-  encuadrar();
-  controls.autoRotate = girarAuto;
-  construirLista();
+  const vista = (eje === 'z' ? new THREE.Vector3(1, 0.3, 0.25) : new THREE.Vector3(0.25, 0.3, 1)).normalize();
+  
+  encuadrar = () => {
+    const dist = L * (window.innerWidth < 600 ? 2.0 : 1.5);
+    distMinCamara = dist * 0.25;
+    distMaxCamara = dist * 3.4;   // más margen para alejarse cuando está explosionado
+    camera.position.copy(centroGeneral).addScaledVector(vista, dist);
+    controls.target.copy(centroGeneral);
+    controls.minDistance = distMinCamara;
+    controls.maxDistance = distMaxCamara;
+    controls.update();
+    $('#zoom').value = Math.round(((dist - distMinCamara) / (distMaxCamara - distMinCamara)) * 100);
+  };
+  encuadrar();
+  controls.autoRotate = girarAuto;
+  construirLista();
 }
 
 function estadoVisual(pt, modo) {
-  for (const m of pt.mats) {
-    if ('emissive' in m) {
-      if (modo === 'sel') { m.emissive.set(0xE8590C); m.emissiveIntensity = 0.5; }
-      else { m.emissive.set(0x000000); m.emissiveIntensity = 0; }
-    }
-    m.transparent = (modo === 'dim');
-    m.opacity = (modo === 'dim') ? 0.2 : 1.0;
-    m.depthWrite = (modo !== 'dim');
-  }
+  for (const m of pt.mats) {
+    if ('emissive' in m) {
+      if (modo === 'sel') { m.emissive.set(0xE8590C); m.emissiveIntensity = 0.5; }
+      else { m.emissive.set(0x000000); m.emissiveIntensity = 0; }
+    }
+    m.transparent = (modo === 'dim');
+    m.opacity = (modo === 'dim') ? 0.2 : 1.0;
+    m.depthWrite = (modo !== 'dim');
+  }
 }
 
 function seleccionar(pt) {
-  actual = pt;
-  partes.forEach(p => {
-    const esSeleccionada = (p === pt);
-    estadoVisual(p, !pt ? 'normal' : (esSeleccionada ? 'sel' : 'dim'));
-    if (p.boton) p.boton.setAttribute('aria-pressed', String(esSeleccionada));
-  });
-  mostrarFicha(pt);
+  actual = pt;
+  partes.forEach(p => {
+    const esSeleccionada = (p === pt);
+    estadoVisual(p, !pt ? 'normal' : (esSeleccionada ? 'sel' : 'dim'));
+    if (p.boton) p.boton.setAttribute('aria-pressed', String(esSeleccionada));
+  });
+  mostrarFicha(pt);
 }
 
 function mostrarFicha(pt) {
-  const panel = $('#panel');
-  panel.classList.toggle('abierto', !!pt);
-  if (!pt) return;
+  const panel = $('#panel');
+  panel.classList.toggle('abierto', !!pt);
+  if (!pt) return;
 
-  const info = pt.info || {};
-  $('#p-titulo').textContent = pt.titulo;
-  $('#p-desc').textContent = info.queEs || 'Componente estructural calibrado del ensamble del motor.';
-  const filas = [
-    ['Material', info.material || 'Aleación de grado aeroespacial'],
-    ['Temperatura límite', info.tempMax || 'Resistencia térmica estándar'],
-    ['Presión de trabajo', info.presion || 'Nominal de cámara'],
-    ['Medidas', info.medidas || pt.medidasModelo]
-  ];
-  const dl = $('#p-datos');
-  dl.replaceChildren();
-  for (const [etiqueta, valor] of filas) {
-    const fila = document.createElement('div'); fila.className = 'fila';
-    const dt = document.createElement('dt'); dt.textContent = etiqueta;
-    const dd = document.createElement('dd'); dd.textContent = valor;
-    fila.append(dt, dd); dl.append(fila);
-  }
+  const info = pt.info || {};
+  $('#p-titulo').textContent = pt.titulo;
+  $('#p-desc').textContent = info.queEs || 'Componente estructural calibrado del ensamble del motor.';
+  const filas = [
+    ['Material', info.material || 'Aleación de grado aeroespacial'],
+    ['Temperatura límite', info.tempMax || 'Resistencia térmica estándar'],
+    ['Presión de trabajo', info.presion || 'Nominal de cámara'],
+    ['Medidas', info.medidas || pt.medidasModelo]
+  ];
+  const dl = $('#p-datos');
+  dl.replaceChildren();
+  for (const [etiqueta, valor] of filas) {
+    const fila = document.createElement('div'); fila.className = 'fila';
+    const dt = document.createElement('dt'); dt.textContent = etiqueta;
+    const dd = document.createElement('dd'); dd.textContent = valor;
+    fila.append(dt, dd); dl.append(fila);
+  }
 }
 
 function construirLista() {
-  const lista = $('#lista');
-  lista.replaceChildren();
-  partes.forEach(pt => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    const muestra = document.createElement('span'); muestra.className = 'muestra'; muestra.style.background = pt.hex;
-    const nombre = document.createElement('span'); nombre.textContent = pt.titulo;
-    b.append(muestra, nombre);
-    b.addEventListener('click', () => seleccionar(actual === pt ? null : pt));
-    pt.boton = b; lista.append(b);
-  });
+  const lista = $('#lista');
+  lista.replaceChildren();
+  partes.forEach(pt => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    const muestra = document.createElement('span'); muestra.className = 'muestra'; muestra.style.background = pt.hex;
+    const nombre = document.createElement('span'); nombre.textContent = pt.titulo;
+    b.append(muestra, nombre);
+    b.addEventListener('click', () => seleccionar(actual === pt ? null : pt));
+    pt.boton = b; lista.append(b);
+  });
 }
 
 const rayo = new THREE.Raycaster();
 const puntero = new THREE.Vector2();
 renderer.domElement.addEventListener('pointerup', e => {
-  const r = renderer.domElement.getBoundingClientRect();
-  puntero.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  rayo.setFromCamera(puntero, camera);
-  const golpe = rayo.intersectObjects(partes.flatMap(p => p.meshes), false)[0];
-  seleccionar(golpe ? golpe.object.userData.parte : null);
+  const r = renderer.domElement.getBoundingClientRect();
+  puntero.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  rayo.setFromCamera(puntero, camera);
+  const golpe = rayo.intersectObjects(partes.flatMap(p => p.meshes), false)[0];
+  seleccionar(golpe ? golpe.object.userData.parte : null);
 });
 
 $('#cerrar').addEventListener('click', () => seleccionar(null));
 
 let listaVisible = true;
 $('#btn-toggle-lista').addEventListener('click', e => {
-  listaVisible = !listaVisible;
-  e.currentTarget.setAttribute('aria-pressed', String(listaVisible));
-  $('#lista').classList.toggle('oculto-lista', !listaVisible);
+  listaVisible = !listaVisible;
+  e.currentTarget.setAttribute('aria-pressed', String(listaVisible));
+  $('#lista').classList.toggle('oculto-lista', !listaVisible);
 });
 
 $('#btn-corte').addEventListener('click', e => {
-  corteActivo = !corteActivo;
-  e.currentTarget.setAttribute('aria-pressed', String(corteActivo));
-  partes.forEach(pt => {
-    pt.mats.forEach(m => {
-      m.clippingPlanes = corteActivo ? [planoCorte] : [];
-      m.needsUpdate = true;
-    });
-  });
+  corteActivo = !corteActivo;
+  e.currentTarget.setAttribute('aria-pressed', String(corteActivo));
+  partes.forEach(pt => {
+    pt.mats.forEach(m => {
+      m.clippingPlanes = corteActivo ? [planoCorte] : [];
+      m.needsUpdate = true;
+    });
+  });
 });
 
 $('#btn-fire').addEventListener('click', e => {
-  fuegoActivo = !fuegoActivo;
-  e.currentTarget.setAttribute('aria-pressed', String(fuegoActivo));
-  fuegoMesh.visible = fuegoActivo;
+  fuegoActivo = !fuegoActivo;
+  e.currentTarget.setAttribute('aria-pressed', String(fuegoActivo));
+  fuegoMesh.visible = fuegoActivo;
 });
 
 $('#zoom').addEventListener('input', e => {
-  const val = e.target.value / 100;
-  const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
-  const dist = distMinCamara + val * (distMaxCamara - distMinCamara);
-  camera.position.copy(controls.target).addScaledVector(dir, dist);
+  const val = e.target.value / 100;
+  const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+  const dist = distMinCamara + val * (distMaxCamara - distMinCamara);
+  camera.position.copy(controls.target).addScaledVector(dir, dist);
 });
 
 $('#explosion').addEventListener('input', e => { objetivoT = e.target.value / 100; });
 $('#btn-girar').addEventListener('click', e => {
-  girarAuto = !girarAuto;
-  e.currentTarget.setAttribute('aria-pressed', String(girarAuto));
-  controls.autoRotate = girarAuto;
+  girarAuto = !girarAuto;
+  e.currentTarget.setAttribute('aria-pressed', String(girarAuto));
+  controls.autoRotate = girarAuto;
 });
 
 $('#btn-reset').addEventListener('click', () => {
-  seleccionar(null);
-  objetivoT = 0; $('#explosion').value = 0;
-  corteActivo = false;
-  fuegoActivo = false;
-  fuegoMesh.visible = false;
-  $('#btn-corte').setAttribute('aria-pressed', 'false');
-  $('#btn-fire').setAttribute('aria-pressed', 'false');
-  partes.forEach(pt => { pt.mats.forEach(m => { m.clippingPlanes = []; }); });
-  encuadrar();
+  seleccionar(null);
+  objetivoT = 0; $('#explosion').value = 0;
+  corteActivo = false;
+  fuegoActivo = false;
+  fuegoMesh.visible = false;
+  $('#btn-corte').setAttribute('aria-pressed', 'false');
+  $('#btn-fire').setAttribute('aria-pressed', 'false');
+  partes.forEach(pt => { pt.mats.forEach(m => { m.clippingPlanes = []; }); });
+  encuadrar();
 });
 
 const reloj = new THREE.Clock();
 renderer.setAnimationLoop(() => {
-  const dt = Math.min(reloj.getDelta(), 0.05);
-  if (Math.abs(objetivoT - t) > 0.0005) { t += (objetivoT - t) * Math.min(1, dt * 7); aplicarExplosion(); }
+  const dt = Math.min(reloj.getDelta(), 0.05);
+  if (Math.abs(objetivoT - t) > 0.0005) { t += (objetivoT - t) * Math.min(1, dt * 7); aplicarExplosion(); }
 
-  if (fuegoActivo) {
-    origenFuego.copy(extremoTobera);
-    if (piezaTobera) origenFuego.addScaledVector(piezaTobera.mundo, tParte(piezaTobera));
+  if (fuegoActivo) {
+    // El fuego sale de la tobera aunque esté explosionada
+    origenFuego.copy(extremoTobera);
+    if (piezaTobera) origenFuego.addScaledVector(piezaTobera.mundo, tParte(piezaTobera));
 
-    const pos = geoParticulas.attributes.position.array;
-    for (let i = 0; i < cantParticulas; i++) {
-      if (velParticulas[i].lengthSq() === 0 || pos[i * 3] * direccionSalida.x + pos[i * 3 + 1] * direccionSalida.y + pos[i * 3 + 2] * direccionSalida.z > 2.5) {
-        pos[i * 3] = origenFuego.x + (Math.random() - 0.5) * 0.04;
-        pos[i * 3 + 1] = origenFuego.y + (Math.random() - 0.5) * 0.04;
-        pos[i * 3 + 2] = origenFuego.z + (Math.random() - 0.5) * 0.04;
-        
-        velParticulas[i].copy(direccionSalida).multiplyScalar(1.8 + Math.random() * 2.2);
-        velParticulas[i].x += (Math.random() - 0.5) * 0.25;
-        velParticulas[i].y += (Math.random() - 0.5) * 0.25;
-        velParticulas[i].z += (Math.random() - 0.5) * 0.25;
-      } else {
-        pos[i * 3] += velParticulas[i].x * dt;
-        pos[i * 3 + 1] += velParticulas[i].y * dt;
-        pos[i * 3 + 2] += velParticulas[i].z * dt;
-      }
-    }
-    geoParticulas.attributes.position.needsUpdate = true;
-  }
+    const pos = geoParticulas.attributes.position.array;
+    for (let i = 0; i < cantParticulas; i++) {
+      if (velParticulas[i].lengthSq() === 0 || pos[i * 3] * direccionSalida.x + pos[i * 3 + 1] * direccionSalida.y + pos[i * 3 + 2] * direccionSalida.z > 2.5) {
+        pos[i * 3] = origenFuego.x + (Math.random() - 0.5) * 0.04;
+        pos[i * 3 + 1] = origenFuego.y + (Math.random() - 0.5) * 0.04;
+        pos[i * 3 + 2] = origenFuego.z + (Math.random() - 0.5) * 0.04;
+        
+        velParticulas[i].copy(direccionSalida).multiplyScalar(1.8 + Math.random() * 2.2);
+        velParticulas[i].x += (Math.random() - 0.5) * 0.25;
+        velParticulas[i].y += (Math.random() - 0.5) * 0.25;
+        velParticulas[i].z += (Math.random() - 0.5) * 0.25;
+      } else {
+        pos[i * 3] += velParticulas[i].x * dt;
+        pos[i * 3 + 1] += velParticulas[i].y * dt;
+        pos[i * 3 + 2] += velParticulas[i].z * dt;
+      }
+    }
+    geoParticulas.attributes.position.needsUpdate = true;
+  }
 
-  controls.update();
-  renderer.render(scene, camera);
+  controls.update();
+  renderer.render(scene, camera);
 });
 </script>
 </body>
