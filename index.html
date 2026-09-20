@@ -397,7 +397,7 @@ function orientarMotor(modelo) {
   const eje = ['x', 'y', 'z'].reduce((m, k) => (Math.abs(d[k]) > Math.abs(d[m]) ? k : m), 'x');
   const actualDir = new THREE.Vector3();
   actualDir[eje] = Math.sign(d[eje]) || 1;
-  modelo.quaternion.setFromUnitVectors(actualDir, new THREE.Vector3(1, 0, 0));
+  modelo.quaternion.setFromUnitVectors(actualDir, new THREE.Vector3(0, 1, 0));
   modelo.updateMatrixWorld(true);
 }
 
