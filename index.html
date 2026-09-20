@@ -200,48 +200,36 @@ const CONFIG = {
   colorear: true,
   rotacionAutomatica: true,
   aMilimetros: 1000,
-  // true = gira el modelo para que quede horizontal: inyector a la izquierda, tobera a la derecha
   inyectorALaIzquierda: true
 };
 
-// ============================================================
-//  IDENTIFICACIÓN DE PIEZAS (por nombre exacto, sin acentos ni símbolos)
-//  clave('Pre-CC') = 'precc', clave('Brida Injector') = 'bridainjector'
-// ============================================================
 const ALIAS = {
-  bridainjector: ['bridainjector', 'bridainyector'],
+  bridainjector: ['bridainjector', 'bridainyector', 'injectorflange'],
   injector:      ['injector', 'inyector'],
   injectorcase:  ['injectorcase', 'inyectorcase'],
-  precc:         ['precc'],
+  precc:          ['precc'],
   casing:        ['casing'],
   fenolico:      ['fenolico', 'phenolics', 'liner'],
   grano:         ['grano', 'grainstep'],
   injerto:       ['injerto', 'grafito'],
   tobera:        ['tobera', 'nozzle'],
-  bridatobera:   ['bridatobera', 'casingnozzle']
+  bridatobera:   ['bridatobera', 'casingnozzle', 'nozzleflange']
 };
 
-// ============================================================
-//  EXPLOSIONADO ESCALONADO
-//  ax    = desplazamiento a lo largo del motor, en fracción del largo total
-//          (negativo = lado inyector / izquierda, positivo = lado tobera / derecha)
-//  up    = desplazamiento hacia arriba, en fracción del largo total (negativo = abajo)
-//  orden = en qué momento sale al mover el slider (0 = primero, 5 = último)
-//  Ajusta estos números a tu gusto; el resto del código no cambia.
-// ============================================================
+/* EXPLOSIONADO LINEAL ESTRICTO (sin desplazamiento vertical) */
 const EXPLOSION = {
-  bridainjector: { ax: -0.62, up: -0.40, orden: 4 },
-  injector:      { ax: -0.35, up: -0.22, orden: 3 },
-  injectorcase:  { ax: -0.28, up: -0.15, orden: 2 },
-  precc:         { ax: -0.16, up: -0.10, orden: 1 },
-  casing:        { ax:  0.00, up:  0.00, orden: 0 },   // ancla, no se mueve
-  fenolico:      { ax:  0.18, up:  0.20, orden: 1 },
-  grano:         { ax:  0.20, up:  0.28, orden: 2 },
-  injerto:       { ax:  0.16, up:  0.20, orden: 3 },
-  tobera:        { ax:  0.22, up:  0.40, orden: 4 },
-  bridatobera:   { ax:  0.68, up:  0.52, orden: 5 }
+  bridainjector: { ax: -0.65, up: 0, orden: 4 },
+  injector:      { ax: -0.48, up: 0, orden: 3 },
+  injectorcase:  { ax: -0.32, up: 0, orden: 2 },
+  precc:          { ax: -0.18, up: 0, orden: 1 },
+  casing:        { ax:  0.00, up: 0, orden: 0 },
+  fenolico:      { ax:  0.15, up: 0, orden: 1 },
+  grano:         { ax:  0.28, up: 0, orden: 2 },
+  injerto:       { ax:  0.42, up: 0, orden: 3 },
+  tobera:        { ax:  0.58, up: 0, orden: 4 },
+  bridatobera:   { ax:  0.72, up: 0, orden: 5 }
 };
-const ESCALON = 0.07;   // retraso entre peldaños al animar (0 = todas a la vez)
+const ESCALON = 0.07;
 const MAX_ORDEN = 5;
 
 const AL = { material: 'Aluminio 6061-T6', tempMax: 'Pérdida de resistencia > 150 °C / Fusión 660 °C' };
@@ -313,10 +301,9 @@ const PIEZAS = {
 const $ = s => document.querySelector(s);
 const clave = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-// Devuelve el id de la pieza ('injector', 'tobera', ...) o null si no se reconoce
 function idPieza(nombre) {
-  const c = clave(nombre).replace(/\d+$/, '');   // quita sufijos tipo .001 / _1
-  for (const id in ALIAS) if (ALIAS[id].includes(c)) return id;
+  const c = clave(nombre).replace(/\d+$/, '');
+  for (const id in ALIAS) if (ALIAS[id].some(alias => c.includes(alias))) return id;
   return null;
 }
 
@@ -362,7 +349,6 @@ let direccionSalida = new THREE.Vector3();
 let piezaTobera = null;
 const origenFuego = new THREE.Vector3();
 
-// Progreso de cada pieza: las cercanas al casing salen primero, las de los extremos al final
 const suave = x => x * x * (3 - 2 * x);
 const tParte = pt => suave(Math.min(1, Math.max(0, (t - pt.orden * ESCALON) / (1 - MAX_ORDEN * ESCALON))));
 
@@ -393,7 +379,6 @@ new GLTFLoader().load(
   }
 );
 
-// Gira el modelo para que el eje del motor quede en X: inyector a la izquierda (-X), tobera a la derecha (+X)
 function orientarMotor(modelo) {
   modelo.updateMatrixWorld(true);
   let inj = null, tob = null;
@@ -404,13 +389,11 @@ function orientarMotor(modelo) {
     if (id === 'tobera') tob = o;
   });
   if (!inj || !tob) {
-    console.warn('No se encontró Injector y/o Tobera; el modelo no se reorientó.');
     return;
   }
   const a = new THREE.Box3().setFromObject(inj).getCenter(new THREE.Vector3());
   const b = new THREE.Box3().setFromObject(tob).getCenter(new THREE.Vector3());
   const d = b.sub(a);
-  // Se ajusta al eje más cercano para no dejar el motor inclinado
   const eje = ['x', 'y', 'z'].reduce((m, k) => (Math.abs(d[k]) > Math.abs(d[m]) ? k : m), 'x');
   const actualDir = new THREE.Vector3();
   actualDir[eje] = Math.sign(d[eje]) || 1;
@@ -446,11 +429,9 @@ function iniciar(gltf) {
   const otros = ejes.filter(e => e !== eje);
   const L = tam[eje];
   const dirEje = new THREE.Vector3(); dirEje[eje] = 1;
-  // "Arriba" para los peldaños (si el motor quedó vertical, se usa Z para no chocar con el eje)
-  const dirArriba = eje === 'y' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
 
-  // Plano de corte longitudinal: quita la mitad que da hacia la cámara (+Z) y deja ver el interior
-  planoCorte.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, -1), centroGeneral);
+  /* CORTE TRANSVERSAL LONGITUDINAL EXACTO EN EL EJE DE LAS Y */
+  planoCorte.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), centroGeneral);
 
   partes = objs.map(obj => {
     const pt = { obj, meshes: [obj], mats: [] };
@@ -479,14 +460,14 @@ function iniciar(gltf) {
     return pt;
   });
 
-  // Localizar pieza de la tobera (para el Fire Test)
-  piezaTobera = partes.find(p => p.id === 'tobera') || partes[partes.length - 1];
+  /* UBICACIÓN EXACTA DEL FUEGO EN LA TOBERA (LADO DERECHO DEL MODELO) */
+  piezaTobera = partes.find(p => p.id === 'tobera' || p.id === 'bridatobera') || partes[partes.length - 1];
   const cajaTobera = new THREE.Box3().setFromObject(piezaTobera.obj);
   cajaTobera.getCenter(extremoTobera);
-  // Los gases salen exactamente a lo largo del eje del motor, hacia el lado de la tobera
-  direccionSalida.copy(dirEje).multiplyScalar(Math.sign(extremoTobera.clone().sub(centroGeneral).dot(dirEje)) || 1);
+  extremoTobera.x = Math.abs(extremoTobera.x); // Asegura que se ubique en el extremo derecho (+X)
+  
+  direccionSalida.set(1, 0, 0); // Flujo de escape impulsado a la derecha
 
-  // EXPLOSIONADO ESCALONADO: cada pieza sale por el eje del motor (inyector -, tobera +) y sube un peldaño
   partes.forEach((pt, i) => {
     const color = new THREE.Color().setHSL((i * 0.618034) % 1, 0.5, 0.58);
     let hex = '#9AAAB6';
@@ -496,11 +477,10 @@ function iniciar(gltf) {
     });
     pt.hex = hex;
 
-    // Pieza no reconocida: se separa proporcionalmente a su posición, sin peldaño
     const ex = EXPLOSION[pt.id] || { ax: pt.rel * CONFIG.expansion, up: 0, orden: 0 };
     pt.orden = ex.orden;
 
-    const mundo = dirEje.clone().multiplyScalar(ex.ax * L).addScaledVector(dirArriba, ex.up * L);
+    const mundo = dirEje.clone().multiplyScalar(ex.ax * L);
     pt.mundo = mundo.clone();
 
     const padre = pt.obj.parent;
@@ -519,12 +499,12 @@ function iniciar(gltf) {
   luz.position.set(1, 2, 1.5).multiplyScalar(Math.max(L, 0.1));
   scene.add(luz);
 
-  const vista = (eje === 'z' ? new THREE.Vector3(1, 0.3, 0.25) : new THREE.Vector3(0.25, 0.3, 1)).normalize();
+  const vista = new THREE.Vector3(0, 0, 1).normalize();
   
   encuadrar = () => {
     const dist = L * (window.innerWidth < 600 ? 2.0 : 1.5);
     distMinCamara = dist * 0.25;
-    distMaxCamara = dist * 3.4;   // más margen para alejarse cuando está explosionado
+    distMaxCamara = dist * 3.4;
     camera.position.copy(centroGeneral).addScaledVector(vista, dist);
     controls.target.copy(centroGeneral);
     controls.minDistance = distMinCamara;
@@ -665,7 +645,6 @@ renderer.setAnimationLoop(() => {
   if (Math.abs(objetivoT - t) > 0.0005) { t += (objetivoT - t) * Math.min(1, dt * 7); aplicarExplosion(); }
 
   if (fuegoActivo) {
-    // El fuego sale de la tobera aunque esté explosionada
     origenFuego.copy(extremoTobera);
     if (piezaTobera) origenFuego.addScaledVector(piezaTobera.mundo, tParte(piezaTobera));
 
