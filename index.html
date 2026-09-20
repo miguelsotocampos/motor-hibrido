@@ -499,7 +499,7 @@ function iniciar(gltf) {
   luz.position.set(1, 2, 1.5).multiplyScalar(Math.max(L, 0.1));
   scene.add(luz);
 
-  const vista = new THREE.Vector3(1, 0, 0).normalize();
+  const vista = new THREE.Vector3(0, 0, 1).normalize();
   
   encuadrar = () => {
     const dist = L * (window.innerWidth < 600 ? 2.0 : 1.5);
